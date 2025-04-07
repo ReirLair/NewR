@@ -470,26 +470,19 @@ app.post('/match', (req, res) => {
   }
 
   fs.readFile(usersFile, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to read users data' });
-    }
+    if (err) return res.status(500).json({ error: 'Failed to read users data' });
 
     const users = JSON.parse(data);
     const team1 = users.find(u => u.playerName === player1);
     const team2 = users.find(u => u.playerName === player2);
 
-    if (!team1 || !team2) {
-      return res.status(404).json({ error: 'One or both users not found' });
-    }
+    if (!team1 || !team2) return res.status(404).json({ error: 'One or both users not found' });
 
-    // Generate match ID
     const matchId = generateMatchId();
-    
-    // Simulate match
+
     const team1Goals = simulateGoals(team1, team2);
     const team2Goals = simulateGoals(team2, team1);
-    
-    // Determine winner and calculate coin reward
+
     const scoreDiff = Math.abs(team1Goals.totalGoals - team2Goals.totalGoals);
     let winner = null;
     let coinReward = 0;
@@ -504,24 +497,38 @@ app.post('/match', (req, res) => {
       coinReward = 250;
     }
 
-    // Update users with new coin balances
     const updatedUsers = users.map(user => {
       if (user.playerName === winner) {
         return { ...user, coins: (user.coins || 0) + coinReward };
-      } else if (team1Goals.totalGoals === team2Goals.totalGoals && 
-                (user.playerName === player1 || user.playerName === player2)) {
+      } else if (team1Goals.totalGoals === team2Goals.totalGoals &&
+        (user.playerName === player1 || user.playerName === player2)) {
         return { ...user, coins: (user.coins || 0) + coinReward };
       }
       return user;
     });
 
-    // Save updated users
     fs.writeFile(usersFile, JSON.stringify(updatedUsers), (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update users data' });
-      }
+      if (err) return res.status(500).json({ error: 'Failed to update users data' });
 
-      // Prepare match result
+      // Combine and sort goals by minute
+      const allGoals = [
+        ...team1Goals.goals.map(g => ({ ...g, team: team1.teamName || team1.playerName })),
+        ...team2Goals.goals.map(g => ({ ...g, team: team2.teamName || team2.playerName }))
+      ].sort((a, b) => a.minute - b.minute);
+
+      // Count goals per player for top scorer
+      const scorerMap = {};
+      allGoals.forEach(goal => {
+        if (!scorerMap[goal.scorer]) scorerMap[goal.scorer] = 0;
+        scorerMap[goal.scorer]++;
+      });
+
+      const topScorerGoals = Math.max(...Object.values(scorerMap), 0);
+      const topScorers = Object.keys(scorerMap).filter(scorer => scorerMap[scorer] === topScorerGoals);
+
+      const team1Possession = Math.floor(Math.random() * 20) + 40;
+      const team2Possession = 100 - team1Possession;
+
       const matchResult = {
         matchId,
         winner,
@@ -530,53 +537,28 @@ app.post('/match', (req, res) => {
           team2Goals: team2Goals.totalGoals,
           team1Shots: team1Goals.totalShots,
           team2Shots: team2Goals.totalShots,
-          team1Possession: Math.floor(Math.random() * 20) + 40,
-          team2Possession: 100 - (Math.floor(Math.random() * 20) + 40),
-          team1Corners: Math.floor(team1Goals.totalGoals * 1.5) + Math.floor(Math.random() * 3),
-          team2Corners: Math.floor(team2Goals.totalGoals * 1.5) + Math.floor(Math.random() * 3),
-          team1Fouls: Math.floor(Math.random() * 15),
-          team2Fouls: Math.floor(Math.random() * 15),
+          team1Possession,
+          team2Possession,
+          team1Corners: Math.floor(team1Goals.totalGoals * 1.5) + randomInt(1, 3),
+          team2Corners: Math.floor(team2Goals.totalGoals * 1.5) + randomInt(1, 3),
+          team1Fouls: randomInt(5, 15),
+          team2Fouls: randomInt(5, 15),
           coinReward
         },
-        goals: [
-          ...team1Goals.goals.map(g => ({
-            ...g,
-            team: team1.teamName || team1.playerName
-          })),
-          ...team2Goals.goals.map(g => ({
-            ...g,
-            team: team2.teamName || team2.playerName
-          }))
-        ].sort((a, b) => parseInt(a.time) - parseInt(b.time)),
-        team1: team1.teamName || team1.playerName,
-        team2: team2.teamName || team2.playerName,
-        players: [player1, player2],
-        timestamp: new Date().toISOString()
+        goals: allGoals.map(goal => ({
+          minute: goal.minute,
+          scorer: goal.scorer,
+          assist: goal.assist,
+          team: goal.team,
+          position: goal.position
+        })),
+        topScorers: topScorers.map(name => ({
+          name,
+          goals: topScorerGoals
+        }))
       };
 
-      // Store match result
-      activeMatches.set(matchId, matchResult);
-
-      fs.readFile(matchesFile, 'utf8', (err, matchData) => {
-  const matches = matchData ? JSON.parse(matchData) : {};
-  matches[matchId] = matchResult;
-
-  fs.writeFile(matchesFile, JSON.stringify(matches, null, 2), (err) => {
-    if (err) {
-      console.error('Failed to save match to matches.json', err);
-    }
-  });
-});
-      
-      // Set timeout to clear match from memory after 1 hour
-      setTimeout(() => {
-        activeMatches.delete(matchId);
-      }, 3600000);
-
-      res.json({
-        ...matchResult,
-        redirectUrl: `/matchx?id=${matchId}`
-      });
+      res.json(matchResult);
     });
   });
 });
