@@ -1,0 +1,45 @@
+{
+    "MCH123": {
+      "matchId": "MCH123",
+      "winner": "John",
+      "stats": {
+        "team1Goals": 3,
+        "team2Goals": 1,
+        "team1Shots": 8,
+        "team2Shots": 4,
+        "team1Possession": 60,
+        "team2Possession": 40,
+        "team1Corners": 5,
+        "team2Corners": 2,
+        "team1Fouls": 4,
+        "team2Fouls": 6,
+        "coinReward": 800
+      },
+      "goals": [
+        {
+          "scorer": "John",
+          "time": "10",
+          "team": "Red Hawks"
+        },
+        {
+          "scorer": "John",
+          "time": "25",
+          "team": "Red Hawks"
+        },
+        {
+          "scorer": "Mike",
+          "time": "33",
+          "team": "Blue Sharks"
+        },
+        {
+          "scorer": "John",
+          "time": "59",
+          "team": "Red Hawks"
+        }
+      ],
+      "team1": "Red Hawks",
+      "team2": "Blue Sharks",
+      "players": ["John", "Mike"],
+      "timestamp": "2025-04-07T08:30:00.000Z"
+    }
+  }

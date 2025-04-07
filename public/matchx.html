@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Match Result</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .teams {
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .stat {
+      margin-bottom: 10px;
+    }
+    .goals {
+      margin-top: 20px;
+    }
+    .goal {
+      margin-bottom: 5px;
+    }
+    .winner {
+      font-weight: bold;
+      color: green;
+      text-align: center;
+      margin: 15px 0;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .button a {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    .button a:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Match Result</h2>
+    <div id="matchContent">Loading...</div>
+    <div class="button">
+      <a href="/">Continue</a>
+    </div>
+  </div>
+
+  <script>
+    async function fetchMatchResult() {
+      const params = new URLSearchParams(window.location.search);
+      const matchId = params.get('id');
+
+      if (!matchId) {
+        document.getElementById('matchContent').innerText = 'No match ID provided.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/match-result?id=${matchId}`);
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById('matchContent').innerText = data.error;
+          return;
+        }
+
+        const stats = data.stats;
+        const goals = data.goals;
+
+        let html = `
+          <div class="teams">
+            <div>${data.team1}</div>
+            <div>${stats.team1Goals} - ${stats.team2Goals}</div>
+            <div>${data.team2}</div>
+          </div>
+          <div class="winner">${data.winner ? `Winner: ${data.winner}` : 'Draw'}</div>
+          <div class="stat">Shots: ${stats.team1Shots} - ${stats.team2Shots}</div>
+          <div class="stat">Possession: ${stats.team1Possession}% - ${stats.team2Possession}%</div>
+          <div class="stat">Corners: ${stats.team1Corners} - ${stats.team2Corners}</div>
+          <div class="stat">Fouls: ${stats.team1Fouls} - ${stats.team2Fouls}</div>
+          <div class="stat">Coin Reward: ${stats.coinReward}</div>
+          <div class="goals"><h3>Goals</h3>
+            ${goals.map(goal => `<div class="goal">${goal.time}' - ${goal.scorer} (${goal.team})</div>`).join('')}
+          </div>
+        `;
+
+        document.getElementById('matchContent').innerHTML = html;
+
+      } catch (error) {
+        document.getElementById('matchContent').innerText = 'Error loading match data.';
+      }
+    }
+
+    fetchMatchResult();
+  </script>
+</body>
+</html>

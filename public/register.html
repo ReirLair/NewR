@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Football Team Creator</title>
+  <style>
+    :root {
+      --primary: #0066cc;
+      --primary-dark: #004d99;
+      --primary-light: #3385ff;
+      --secondary: #00aa00;
+      --secondary-dark: #008800;
+      --secondary-light: #33cc33;
+      --accent: #ffcc00;
+      --accent-dark: #e6b800;
+      --error: #e50914;
+      --error-dark: #c40812;
+      --bg: #121212;
+      --bg-light: #1e1e1e;
+      --bg-lighter: #2a2a2a;
+      --text: #ffffff;
+      --text-secondary: #cccccc;
+      --text-tertiary: #999999;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 102, 204, 0.15) 0%, rgba(0, 0, 0, 0) 90%),
+        radial-gradient(circle at 90% 80%, rgba(0, 170, 0, 0.1) 0%, rgba(0, 0, 0, 0) 90%);
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 2rem;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .form-step {
+      background: var(--bg-light);
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 550px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 2rem;
+      display: none;
+      animation: fadeIn 0.5s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+    }
+    
+    .form-step:hover {
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    
+    .form-step.active {
+      display: block;
+    }
+    
+    .form-step h2 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .form-step p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.7;
+    }
+    
+    input {
+      width: 100%;
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1.5rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    
+    input::placeholder {
+      color: var(--text-tertiary);
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+    }
+    
+    .btn {
+      padding: 1.1rem 2.2rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      width: 100%;
+      margin-top: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 102, 204, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 170, 0, 0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--secondary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 170, 0, 0.4);
+    }
+    
+    .btn-ghost {
+      background: transparent;
+      color: var(--primary-light);
+      border: 2px solid var(--primary);
+      box-shadow: none;
+    }
+    
+    .btn-ghost:hover {
+      background: rgba(0, 102, 204, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 102, 204, 0.2);
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+    }
+    
+    #teamPreview {
+      display: none;
+      width: 100%;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .team-header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    
+    .team-name {
+      font-size: 2.5rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .manager-name {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    
+    .coins-display {
+      font-size: 1.3rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 204, 0, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 204, 0, 0.2);
+    }
+    
+    .formation-container {
+      position: relative;
+      width: 100%;
+      height: 550px;
+      background-image: url('https://files.catbox.moe/fe75ee.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      margin-bottom: 3rem;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .player {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 80px;
+      text-align: center;
+      transform: translate(-50%, -50%);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+      z-index: 1;
+    }
+    
+    .player:hover {
+      transform: translate(-50%, -50%) scale(1.15);
+      z-index: 10;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+    }
+    
+    .player-icon {
+      width: 60px;
+      height: 60px;
+      background-color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+      border: 3px solid white;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .player:hover .player-icon {
+      border-color: var(--accent);
+      background-color: var(--primary-dark);
+    }
+    
+    .player-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .player-name {
+      font-size: 0.9rem;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 0.4rem 0.8rem;
+      border-radius: 14px;
+      white-space: nowrap;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(5px);
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .player:hover .player-name {
+      background: rgba(0, 0, 0, 0.9);
+      transform: translateY(2px);
+    }
+    
+    .position-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--error);
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid var(--bg-light);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+    
+    .player-rating {
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-top: 0.3rem;
+      font-weight: 700;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      backdrop-filter: blur(5px);
+      transition: all 0.3s ease;
+    }
+    
+    .player:hover .player-rating {
+      background: rgba(0, 0, 0, 0.9);
+      transform: translateY(2px);
+    }
+    
+    .player-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 2.5rem 0;
+    }
+    
+    .section-title {
+      font-size: 1.8rem;
+      margin: 2rem 0 1.5rem;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      position: relative;
+      padding-bottom: 0.5rem;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      border-radius: 3px;
+    }
+    
+    .player-card {
+      background: var(--bg-light);
+      padding: 1.2rem;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .player-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      border-color: var(--primary);
+    }
+    
+    .player-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      margin-right: 1.2rem;
+      object-fit: cover;
+      border: 3px solid var(--primary);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .player-info {
+      flex: 1;
+    }
+    
+    .player-info h4 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    
+    .player-info p {
+      margin: 0.4rem 0 0;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .player-rating-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #000;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    
+    .progress {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 1.5rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 1.2rem;
+      color: var(--text-secondary);
+      margin-top: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 2.2rem;
+      }
+      
+      .form-step {
+        padding: 2rem;
+        border-radius: 16px;
+      }
+      
+      .form-step h2 {
+        font-size: 1.7rem;
+      }
+      
+      .team-name {
+        font-size: 2rem;
+      }
+      
+      .player-list {
+        grid-template-columns: 1fr;
+      }
+      
+      .formation-container {
+        height: 450px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body {
+        padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .form-step {
+        padding: 1.5rem;
+      }
+      
+      .form-step h2 {
+        font-size: 1.5rem;
+      }
+      
+      .btn-group {
+        flex-direction: column;
+      }
+      
+      .team-name {
+        font-size: 1.7rem;
+      }
+      
+      .player {
+        width: 70px;
+      }
+      
+      .player-icon {
+        width: 50px;
+        height: 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Football Team Creator</h1>
+    
+    <div class="progress-bar">
+      <div class="progress" id="progressBar"></div>
+    </div>
+    
+    <!-- Step 1: Welcome -->
+    <div class="form-step active" id="step1">
+      <h2>Welcome, Football Manager!</h2>
+      <p>Let's create your dream team. First, may we know your name?</p>
+      <input type="text" id="playerName" placeholder="Your manager name" required>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+        <button class="btn btn-ghost" onclick="window.location.href='/login'">I have an account</button>
+      </div>
+    </div>
+    
+    <!-- Step 2: Team Name -->
+    <div class="form-step" id="step2">
+      <h2>Choose Your Team Name</h2>
+      <p>Pick a legendary name that will strike fear in your opponents</p>
+      <input type="text" id="teamName" placeholder="Team name" required>
+      <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+    </div>
+    
+    <!-- Step 3: Password -->
+    <div class="form-step" id="step3">
+      <h2>Secure Your Account</h2>
+      <p>Create a strong password to protect your team</p>
+      <input type="password" id="password" placeholder="Password" required>
+      <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+      <button class="btn btn-primary" onclick="createTeam()">Create Team</button>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="loadingState" class="form-step" style="display: none;">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <h2>Creating Your Dream Team</h2>
+        <p class="loading-text">Assembling your squad of champions...</p>
+      </div>
+    </div>
+    
+    <!-- Team Preview -->
+    <div id="teamPreview">
+      <div class="team-header">
+        <div class="team-name" id="teamNameDisplay"></div>
+        <div class="manager-name" id="managerNameDisplay"></div>
+        <div class="coins-display">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 8.5C14.315 7.815 13.109 7.339 12 7.309C10.772 7.282 9 8.5 9 8.5C9 8.5 10.228 9.718 12 9.718C13.772 9.718 15 8.5 15 8.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 15C9 15 10.228 16.218 12 16.218C13.772 16.218 15 15 15 15C15 15 13.772 13.782 12 13.782C10.228 13.782 9 15 9 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span id="coinsDisplay">0</span>
+        </div>
+      </div>
+      
+      <div class="formation-container" id="teamFormation"></div>
+      
+      <h3 class="section-title">Starting XI</h3>
+      <div class="player-list" id="startingPlayers"></div>
+      
+      <h3 class="section-title">Substitutes</h3>
+      <div class="player-list" id="substitutePlayers"></div>
+      
+      <button id="continueBtn" class="btn btn-secondary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Continue to Lobby
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 3;
+    const teamData = {};
+    
+    // Initialize progress bar
+    updateProgressBar();
+    
+    function updateProgressBar() {
+      const progress = (currentStep / totalSteps) * 100;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+    }
+    
+    function nextStep() {
+      // Validate current step before proceeding
+      if (currentStep === 1) {
+        const playerName = document.getElementById('playerName').value.trim();
+        if (!playerName) {
+          alert('Please enter your name');
+          return;
+        }
+        teamData.playerName = playerName;
+      } else if (currentStep === 2) {
+        const teamName = document.getElementById('teamName').value.trim();
+        if (!teamName) {
+          alert('Please enter a team name');
+          return;
+        }
+        teamData.teamName = teamName;
+      }
+      
+      // Hide current step and show next
+      document.getElementById(`step${currentStep}`).classList.remove('active');
+      currentStep++;
+      updateProgressBar();
+      
+      if (currentStep <= totalSteps) {
+        document.getElementById(`step${currentStep}`).classList.add('active');
+      }
+    }
+    
+    async function createTeam() {
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      
+      if (!password || password !== confirmPassword) {
+        alert('Passwords do not match or are empty');
+        return;
+      }
+      
+      teamData.password = password;
+      
+      try {
+        // Show loading state
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        document.getElementById('loadingState').style.display = 'block';
+        
+        // Register the team
+        const registerResponse = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(teamData)
+        });
+
+        if (!registerResponse.ok) {
+          const error = await registerResponse.json();
+          throw new Error(error.error || 'Failed to create team');
+        }
+
+        // After successful registration, fetch the team data
+        const registerResult = await registerResponse.json();
+        const teamResponse = await fetch(`/team/${encodeURIComponent(teamData.playerName)}`);
+        
+        if (!teamResponse.ok) {
+          throw new Error('Failed to fetch team data');
+        }
+        
+        const teamDataResult = await teamResponse.json();
+        displayTeam(teamDataResult);
+      } catch (error) {
+        // Hide loading state and show error
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        alert(error.message);
+        console.error('Error:', error);
+      }
+    }
+    
+    function displayTeam(result) {
+      // Hide loading state
+      document.getElementById('loadingState').style.display = 'none';
+      
+      // Show team preview
+      document.getElementById('teamPreview').style.display = 'block';
+      
+      // Set team name, manager name and coins
+      document.getElementById('teamNameDisplay').textContent = result.teamName;
+      document.getElementById('managerNameDisplay').textContent = `Managed by ${result.playerName}`;
+      document.getElementById('coinsDisplay').textContent = result.coins || 500;
+      
+      // Formation positions for 4-3-3
+      const formationPositions = {
+        gk: [50, 90],
+        df: [
+          [25, 70], [40, 70], [60, 70], [75, 70]
+        ],
+        mf: [
+          [35, 55], [50, 55], [65, 55]
+        ],
+        cf: [50, 30],
+        rwf: [75, 30],
+        lwf: [25, 30]
+      };
+      
+      // Clear previous players
+      document.getElementById('startingPlayers').innerHTML = '';
+      document.getElementById('substitutePlayers').innerHTML = '';
+      document.getElementById('teamFormation').innerHTML = '';
+      
+      // Display players from the fetched team data
+      if (result.players) {
+        // Goalkeeper
+        if (result.players.gk) {
+          createPlayerElement(result.players.gk, 'GK', formationPositions.gk[0], formationPositions.gk[1]);
+          addPlayerCard(result.players.gk, 'startingPlayers', 'GK');
+        }
+        
+        // Defenders
+        if (result.players.df && Array.isArray(result.players.df)) {
+          result.players.df.forEach((player, index) => {
+            if (player && formationPositions.df[index]) {
+              const pos = formationPositions.df[index];
+              createPlayerElement(player, 'DF', pos[0], pos[1]);
+              addPlayerCard(player, 'startingPlayers', 'DF');
+            }
+          });
+        }
+        
+        // Midfielders
+        if (result.players.mf && Array.isArray(result.players.mf)) {
+          result.players.mf.forEach((player, index) => {
+            if (player && formationPositions.mf[index]) {
+              const pos = formationPositions.mf[index];
+              createPlayerElement(player, 'MF', pos[0], pos[1]);
+              addPlayerCard(player, 'startingPlayers', 'MF');
+            }
+          });
+        }
+        
+        // Forwards
+        if (result.players.cf) {
+          createPlayerElement(result.players.cf, 'CF', formationPositions.cf[0], formationPositions.cf[1]);
+          addPlayerCard(result.players.cf, 'startingPlayers', 'CF');
+        }
+        
+        if (result.players.rwf) {
+          createPlayerElement(result.players.rwf, 'RWF', formationPositions.rwf[0], formationPositions.rwf[1]);
+          addPlayerCard(result.players.rwf, 'startingPlayers', 'RWF');
+        }
+        
+        if (result.players.lwf) {
+          createPlayerElement(result.players.lwf, 'LWF', formationPositions.lwf[0], formationPositions.lwf[1]);
+          addPlayerCard(result.players.lwf, 'startingPlayers', 'LWF');
+        }
+        
+        // Substitutes
+        if (result.players.subs && Array.isArray(result.players.subs)) {
+          result.players.subs.forEach(player => {
+            if (player) {
+              addPlayerCard(player, 'substitutePlayers', 'SUB');
+            }
+          });
+        }
+      }
+    }
+    
+    function createPlayerElement(player, position, x, y) {
+      if (!player) return;
+      
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'player';
+      playerDiv.style.left = `${x}%`;
+      playerDiv.style.top = `${y}%`;
+      
+      // Generate player image with initials as fallback
+      const initials = player.name ? player.name.split(' ').map(n => n[0]).join('') : 'PL';
+      
+      playerDiv.innerHTML = `
+        <div class="player-icon">
+          <img src="https://ui-avatars.com/api/?name=${initials}&background=${encodeURIComponent('#0066cc')}&color=fff" alt="${player.name || 'Player'}">
+          <span class="position-badge">${position}</span>
+        </div>
+        <div class="player-name">${player.name || 'Player'}</div>
+        <div class="player-rating">${player.rating || '0'}</div>
+      `;
+      
+      document.getElementById('teamFormation').appendChild(playerDiv);
+    }
+    
+    function addPlayerCard(player, containerId, position) {
+      if (!player) return;
+      
+      const container = document.getElementById(containerId);
+      const initials = player.name ? player.name.split(' ').map(n => n[0]).join('') : 'PL';
+      
+      const playerCard = document.createElement('div');
+      playerCard.className = 'player-card';
+      playerCard.innerHTML = `
+        <img src="https://ui-avatars.com/api/?name=${initials}&background=${encodeURIComponent('#0066cc')}&color=fff" alt="${player.name || 'Player'}">
+        <div class="player-info">
+          <h4>${player.name || 'Player'}</h4>
+          <p>
+            <span>${position || 'POS'}</span>
+            <span>•</span>
+            <span>Rating:</span>
+            <span class="player-rating-badge">${player.rating || '0'}</span>
+          </p>
+        </div>
+      `;
+      container.appendChild(playerCard);
+    }
+    
+    // Continue button event listener
+    document.getElementById('continueBtn')?.addEventListener('click', function() {
+      window.location.href = '/lobby';
+    });
+  </script>
+</body>
+</html>
