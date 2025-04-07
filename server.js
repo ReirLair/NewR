@@ -450,6 +450,49 @@ app.post('/add-to-waiting', (req, res) => {
   });
 });
 
+// Utility to get random int in range
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Simulate goals function
+function simulateGoals(attackingTeam, defendingTeam) {
+  const goals = [];
+  const attackers = attackingTeam.players.filter(p => p.position === 'ST' || p.position === 'CF' || p.position === 'LW' || p.position === 'RW');
+  const midfielders = attackingTeam.players.filter(p => p.position === 'CM' || p.position === 'CAM' || p.position === 'LM' || p.position === 'RM' || p.position === 'CDM');
+  const defenders = defendingTeam.players.filter(p => p.position === 'CB' || p.position === 'LB' || p.position === 'RB' || p.position === 'LWB' || p.position === 'RWB');
+  const goalkeeper = defendingTeam.players.find(p => p.position === 'GK');
+
+  // Calculate team attacking power
+  const attackRating = attackers.reduce((sum, p) => sum + p.rating, 0) / (attackers.length || 1);
+  const midfieldRating = midfielders.reduce((sum, p) => sum + p.rating, 0) / (midfielders.length || 1);
+  const defenseRating = defenders.reduce((sum, p) => sum + p.rating, 0) / (defenders.length || 1);
+  const goalkeeperRating = goalkeeper ? goalkeeper.rating : 50; // assume weak GK if none
+
+  const chanceFactor = ((attackRating * 0.6 + midfieldRating * 0.4) - (defenseRating * 0.6 + goalkeeperRating * 0.4)) / 100;
+  const totalShots = Math.max(randomInt(5, 12) + Math.floor(chanceFactor * 10), 2);
+  const totalGoals = Math.max(Math.floor(totalShots * (0.1 + chanceFactor + Math.random() * 0.15)), 0);
+
+  for (let i = 0; i < totalGoals; i++) {
+    const scorer = attackers[randomInt(0, attackers.length - 1)];
+    const assist = midfielders.length > 0 ? midfielders[randomInt(0, midfielders.length - 1)] : null;
+    const minute = randomInt(1, 90);
+
+    goals.push({
+      scorer: scorer.name,
+      assist: assist ? assist.name : null,
+      minute,
+      position: scorer.position
+    });
+  }
+
+  return {
+    totalGoals,
+    totalShots,
+    goals
+  };
+}
+
 // Enhanced match simulation with coin rewards
 // Add this to your existing backend code
 
@@ -566,30 +609,39 @@ app.post('/match', (req, res) => {
 // New endpoint to get match result by ID
 app.get('/match-result', (req, res) => {
   const { id } = req.query;
-  
+
   if (!id) {
     return res.status(400).json({ error: 'Match ID is required' });
   }
 
+  // Check active memory first
   const match = activeMatches.get(id);
-  
   if (match) {
     return res.json(match);
   }
 
-  // Check matches.json if not in memory
+  // Fallback: check saved matches.json
   const matchesFile = path.join(__dirname, 'matches.json');
+  
   fs.readFile(matchesFile, 'utf8', (err, data) => {
     if (err) {
+      console.error('Error reading matches.json:', err);
       return res.status(500).json({ error: 'Failed to read saved matches' });
     }
 
-    const matches = data ? JSON.parse(data) : {};
-    if (!matches[id]) {
-      return res.status(404).json({ error: 'Match not found' });
-    }
+    try {
+      const matches = data ? JSON.parse(data) : {};
+      const savedMatch = matches[id];
 
-    return res.json(matches[id]);
+      if (!savedMatch) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+
+      return res.json(savedMatch);
+    } catch (parseError) {
+      console.error('Error parsing matches.json:', parseError);
+      return res.status(500).json({ error: 'Failed to parse saved matches' });
+    }
   });
 });
 
