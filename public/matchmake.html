@@ -324,12 +324,12 @@
     <h1>Matchmaking</h1>
     <p>Find your next opponent and prove your skills</p>
   </div>
-  
+
   <div class="status-container" id="statusContainer">
     <div class="status-message" id="statusMessage">Joining matchmaking queue...</div>
     <div class="hint-message" id="hintMessage"></div>
     <div class="players-waiting" id="playersWaiting"></div>
-    
+
     <button class="action-btn cancel-btn" id="cancelBtn">
       <i class="fas fa-times"></i> Cancel Matchmaking
     </button>
@@ -337,110 +337,113 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const statusMessage = document.getElementById('statusMessage');
-  const hintMessage = document.getElementById('hintMessage');
-  const playersWaiting = document.getElementById('playersWaiting');
-  const cancelBtn = document.getElementById('cancelBtn');
+  document.addEventListener('DOMContentLoaded', function () {
+    const statusMessage = document.getElementById('statusMessage');
+    const hintMessage = document.getElementById('hintMessage');
+    const playersWaiting = document.getElementById('playersWaiting');
+    const cancelBtn = document.getElementById('cancelBtn');
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
-  if (!currentUser || !currentUser.playerName) {
-    window.location.href = '/login';
-    return;
-  }
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser || !currentUser.playerName) {
+      window.location.href = '/login';
+      return;
+    }
 
-  const hints = [
-    "Did you know? The average football match has 11 goals per season.",
-    "Pro tip: Midfielders with high stamina can dominate the game in later stages.",
-    "Fun fact: The fastest goal in professional football was scored in 2.8 seconds!",
-    "Strategy tip: Balanced teams perform better than those focused only on attack.",
-    "Historical fact: The first football match was played in 1863.",
-    "Training tip: Daily drills improve your players' skills by up to 15%."
-  ];
+    const hints = [
+      "Did you know? The average football match has 11 goals per season.",
+      "Pro tip: Midfielders with high stamina can dominate the game in later stages.",
+      "Fun fact: The fastest goal in professional football was scored in 2.8 seconds!",
+      "Strategy tip: Balanced teams perform better than those focused only on attack.",
+      "Historical fact: The first football match was played in 1863.",
+      "Training tip: Daily drills improve your players' skills by up to 15%."
+    ];
 
-  let hintInterval;
-  let checkMatchInterval;
+    let hintInterval;
+    let checkMatchInterval;
 
-  startMatchmaking();
+    startMatchmaking();
 
-  function startMatchmaking() {
-    fetch('/add-to-waiting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.playerName })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.matched) {
-        handleMatchFound(data.matched);
-      } else {
-        updateWaitingStatus();
-        checkMatchInterval = setInterval(checkForMatch, 3000);
-        showRandomHint();
-        hintInterval = setInterval(showRandomHint, 8000);
-      }
-    })
-    .catch(err => {
-      console.error('Matchmaking error:', err);
-      statusMessage.textContent = 'Error joining matchmaking';
-    });
-  }
-
-  function updateWaitingStatus() {
-    fetch('/waiting-count')
+    function startMatchmaking() {
+      fetch('/add-to-waiting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.playerName })
+      })
       .then(res => res.json())
       .then(data => {
-        playersWaiting.textContent = `Players waiting: ${data.count}`;
+        if (data.matched) {
+          redirectToMatch(data.matched);
+        } else {
+          updateWaitingStatus();
+          startCheckingForMatch();
+          showRandomHint();
+          hintInterval = setInterval(showRandomHint, 8000);
+        }
       })
       .catch(err => {
-        console.error('Error fetching waiting count:', err);
+        console.error('Matchmaking error:', err);
+        statusMessage.textContent = 'Error joining matchmaking';
       });
-  }
+    }
 
-  function checkForMatch() {
-    fetch('/check-match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.playerName })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.matched) {
+    function updateWaitingStatus() {
+      fetch('/waiting-count')
+        .then(res => res.json())
+        .then(data => {
+          playersWaiting.textContent = `Players waiting: ${data.count}`;
+        })
+        .catch(err => {
+          console.error('Error fetching waiting count:', err);
+        });
+    }
+
+    function startCheckingForMatch() {
+      checkMatchInterval = setInterval(() => {
+        fetch('/check-match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser.playerName })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.matched) {
+            clearInterval(checkMatchInterval);
+            clearInterval(hintInterval);
+            redirectToMatch(data.matched);
+          }
+        })
+        .catch(err => {
+          console.error('Error checking for match:', err);
+        });
+      }, 3000);
+    }
+
+    function redirectToMatch(matchData) {
+      const matchLink = `/matchx?id=${matchData.matchId}`;
+      window.location.href = matchLink;
+    }
+
+    function showRandomHint() {
+      const randomHint = hints[Math.floor(Math.random() * hints.length)];
+      hintMessage.textContent = randomHint;
+    }
+
+    cancelBtn.addEventListener('click', () => {
+      fetch('/cancel-matchmaking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.playerName })
+      })
+      .then(() => {
         clearInterval(checkMatchInterval);
         clearInterval(hintInterval);
-        handleMatchFound(data.matched);
-      }
-    })
-    .catch(err => {
-      console.error('Error checking for match:', err);
-    });
-  }
-
-  function showRandomHint() {
-    const randomHint = hints[Math.floor(Math.random() * hints.length)];
-    hintMessage.textContent = randomHint;
-  }
-
-  function handleMatchFound(matchedData) {
-    statusMessage.textContent = 'Match found! Redirecting...';
-    // Replace this with your real game page redirect
-    window.location.href = `/game?room=${matchedData.roomId}`;
-  }
-
-  cancelBtn.addEventListener('click', function () {
-    clearInterval(checkMatchInterval);
-    clearInterval(hintInterval);
-
-    fetch('/cancel-matchmaking', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.playerName })
-    })
-    .finally(() => {
-      window.location.href = '/lobby';
+        window.location.href = '/lobby';
+      })
+      .catch(err => {
+        console.error('Error cancelling matchmaking:', err);
+      });
     });
   });
-});
-  </script>
+</script>
 </body>
 </html>
