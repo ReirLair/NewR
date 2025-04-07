@@ -320,57 +320,56 @@
 </head>
 <body>
   <div class="matchmaking-container">
-    <div class="matchmaking-header">
-      <h1>Matchmaking</h1>
-      <p>Find your next opponent and prove your skills</p>
-    </div>
-    
-    <div class="status-container" id="statusContainer">
-      <div class="status-message" id="statusMessage">Joining matchmaking queue...</div>
-      <div class="hint-message" id="hintMessage"></div>
-      <div class="players-waiting" id="playersWaiting"></div>
-      
-      <button class="action-btn cancel-btn" id="cancelBtn">
-        <i class="fas fa-times"></i> Cancel Matchmaking
-      </button>
-    </div>
-    
-    <div id="matchFoundContainer" style="display: none;">
-      <div class="status-message">Match Found!</div>
-      
-      <div class="match-teams">
-        <div class="team-card" id="team1Card">
-          <h3 id="team1Name">Team 1</h3>
-        </div>
-        
-        <div class="vs-circle">VS</div>
-        
-        <div class="team-card" id="team2Card">
-          <h3 id="team2Name">Team 2</h3>
-        </div>
-      </div>
-      
-      <div class="loading-spinner"></div>
-      <p>Simulating match...</p>
-    </div>
-    
-    <div id="matchResults" style="display: none;">
-      <div class="result-card">
-        <div class="result-title">Match Results</div>
-        
-        <div class="goals-container" id="goalsContainer"></div>
-        
-        <div class="stats-grid" id="statsGrid"></div>
-        
-        <button class="action-btn" id="backToLobbyBtn">
-          <i class="fas fa-arrow-left"></i> Back to Lobby
-        </button>
-      </div>
-    </div>
+  <div class="matchmaking-header">
+    <h1>Matchmaking</h1>
+    <p>Find your next opponent and prove your skills</p>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
+  <div class="status-container" id="statusContainer">
+    <div class="status-message" id="statusMessage">Joining matchmaking queue...</div>
+    <div class="hint-message" id="hintMessage"></div>
+    <div class="players-waiting" id="playersWaiting"></div>
+
+    <button class="action-btn cancel-btn" id="cancelBtn">
+      <i class="fas fa-times"></i> Cancel Matchmaking
+    </button>
+  </div>
+
+  <div id="matchFoundContainer" style="display: none;">
+    <div class="status-message">Match Found!</div>
+
+    <div class="match-teams">
+      <div class="team-card" id="team1Card">
+        <h3 id="team1Name">Team 1</h3>
+      </div>
+
+      <div class="vs-circle">VS</div>
+
+      <div class="team-card" id="team2Card">
+        <h3 id="team2Name">Team 2</h3>
+      </div>
+    </div>
+
+    <div class="loading-spinner"></div>
+    <p>Simulating match...</p>
+  </div>
+
+  <div id="matchResults" style="display: none;">
+    <div class="result-card">
+      <div class="result-title">Match Results</div>
+
+      <div class="goals-container" id="goalsContainer"></div>
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <button class="action-btn" id="backToLobbyBtn">
+        <i class="fas fa-arrow-left"></i> Back to Lobby
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
   const statusMessage = document.getElementById('statusMessage');
   const hintMessage = document.getElementById('hintMessage');
   const playersWaiting = document.getElementById('playersWaiting');
@@ -472,6 +471,8 @@
     matchFoundContainer.style.display = 'block';
 
     const opponent = matchedPlayers.find(p => p !== currentUser.playerName);
+    document.getElementById('team1Name').textContent = currentUser.playerName;
+    document.getElementById('team2Name').textContent = opponent;
 
     setTimeout(() => {
       simulateMatch(currentUser.playerName, opponent);
@@ -479,26 +480,26 @@
   }
 
   function simulateMatch(player1, player2) {
-  fetch('/match', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ player1, player2 })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.matchId) {
-      const matchLink = `/matchx?id=${data.matchId}`;
-      window.location.href = matchLink;
-    } else {
-      console.error('No matchId in response:', data);
+    fetch('/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player1, player2 })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.matchId) {
+        const matchLink = `/matchx?id=${data.matchId}`;
+        window.location.href = matchLink;
+      } else {
+        console.error('No matchId in response:', data);
+        window.location.href = '/';
+      }
+    })
+    .catch(err => {
+      console.error('Match simulation failed:', err);
       window.location.href = '/';
-    }
-  })
-  .catch(err => {
-    console.error('Match simulation failed:', err);
-    window.location.href = '/';
-  });
-}
+    });
+  }
 
   function showRandomHint() {
     const hint = hints[Math.floor(Math.random() * hints.length)];
