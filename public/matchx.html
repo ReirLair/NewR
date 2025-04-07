@@ -28,20 +28,42 @@
       font-size: 18px;
       margin-bottom: 10px;
     }
+    .team-name {
+      font-weight: bold;
+      font-size: 20px;
+    }
+    .score {
+      font-size: 24px;
+      font-weight: bold;
+    }
     .stat {
       margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stat-label {
+      font-weight: bold;
     }
     .goals {
       margin-top: 20px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
     }
     .goal {
-      margin-bottom: 5px;
+      margin-bottom: 10px;
+      padding: 8px;
+      background: #f9f9f9;
+      border-radius: 5px;
     }
     .winner {
       font-weight: bold;
       color: green;
       text-align: center;
       margin: 15px 0;
+      font-size: 18px;
+    }
+    .draw {
+      color: orange;
     }
     .button {
       display: block;
@@ -60,6 +82,31 @@
     .button a:hover {
       background: #0056b3;
     }
+    .top-scorers {
+      margin-top: 20px;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+    .top-scorer {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .stat-box {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -72,52 +119,113 @@
   </div>
 
   <script>
-    async function fetchMatchResult() {
-      const params = new URLSearchParams(window.location.search);
-      const matchId = params.get('id');
+  async function fetchMatchResult() {
+    const params = new URLSearchParams(window.location.search);
+    const matchId = params.get('id');
 
-      if (!matchId) {
-        document.getElementById('matchContent').innerText = 'No match ID provided.';
+    if (!matchId) {
+      document.getElementById('matchContent').innerText = 'No match ID provided.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/match-result?id=${matchId}`);
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('matchContent').innerText = data.error;
         return;
       }
 
-      try {
-        const res = await fetch(`/match-result?id=${matchId}`);
-        const data = await res.json();
+      const stats = data.stats;
+      const goals = data.goals || [];
+      const topScorers = data.topScorers || [];
 
-        if (data.error) {
-          document.getElementById('matchContent').innerText = data.error;
-          return;
-        }
+      // Extract team names from goals if not available directly
+      const teamNames = {
+        team1: goals.find(g => g.team)?.team || 'Team 1',
+        team2: goals.reverse().find(g => g.team)?.team || 'Team 2'
+      };
 
-        const stats = data.stats;
-        const goals = data.goals;
+      let html = `
+        <div class="teams">
+          <div class="team-name">${teamNames.team1}</div>
+          <div class="score">${stats.team1Goals} - ${stats.team2Goals}</div>
+          <div class="team-name">${teamNames.team2}</div>
+        </div>
+      `;
 
-        let html = `
-          <div class="teams">
-            <div>${data.team1}</div>
-            <div>${stats.team1Goals} - ${stats.team2Goals}</div>
-            <div>${data.team2}</div>
-          </div>
-          <div class="winner">${data.winner ? `Winner: ${data.winner}` : 'Draw'}</div>
-          <div class="stat">Shots: ${stats.team1Shots} - ${stats.team2Shots}</div>
-          <div class="stat">Possession: ${stats.team1Possession}% - ${stats.team2Possession}%</div>
-          <div class="stat">Corners: ${stats.team1Corners} - ${stats.team2Corners}</div>
-          <div class="stat">Fouls: ${stats.team1Fouls} - ${stats.team2Fouls}</div>
-          <div class="stat">Coin Reward: ${stats.coinReward}</div>
-          <div class="goals"><h3>Goals</h3>
-            ${goals.map(goal => `<div class="goal">${goal.time}' - ${goal.scorer} (${goal.team})</div>`).join('')}
-          </div>
-        `;
-
-        document.getElementById('matchContent').innerHTML = html;
-
-      } catch (error) {
-        document.getElementById('matchContent').innerText = 'Error loading match data.';
+      // Winner/Draw display
+      if (data.winner) {
+        html += `<div class="winner">Winner: ${data.winner}</div>`;
+      } else {
+        html += `<div class="winner draw">Match ended in a draw</div>`;
       }
-    }
 
-    fetchMatchResult();
+      // Stats grid
+      html += `
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Shots</div>
+            <div class="stat-value">${stats.team1Shots} - ${stats.team2Shots}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Possession</div>
+            <div class="stat-value">${stats.team1Possession}% - ${stats.team2Possession}%</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Corners</div>
+            <div class="stat-value">${stats.team1Corners} - ${stats.team2Corners}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Fouls</div>
+            <div class="stat-value">${stats.team1Fouls} - ${stats.team2Fouls}</div>
+          </div>
+          <div class="stat-box" style="grid-column: span 2;">
+            <div class="stat-label">Coin Reward</div>
+            <div class="stat-value">${stats.coinReward || stats.coinReward || 0} coins</div>
+          </div>
+        </div>
+      `;
+
+      // Goals section
+      if (goals.length > 0) {
+        html += `<div class="goals"><h3>Match Goals</h3>`;
+        goals.forEach(goal => {
+          html += `
+            <div class="goal">
+              <strong>${goal.minute}'</strong> - 
+              <strong>${goal.scorer}</strong> (${goal.position}) - ${goal.team}
+              ${goal.assist ? `<br>Assist: ${goal.assist}` : ''}
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      // Top Scorers section
+      if (topScorers.length > 0) {
+        html += `<div class="top-scorers"><h3>Top Scorers</h3>`;
+        topScorers.forEach(player => {
+          html += `
+            <div class="top-scorer">
+              <span>${player.name}</span>
+              <span>${player.goals} goal${player.goals !== 1 ? 's' : ''}</span>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      document.getElementById('matchContent').innerHTML = html;
+
+    } catch (error) {
+      console.error(error);
+      document.getElementById('matchContent').innerText = 'Failed to fetch match data.';
+    }
+  }
+
+  fetchMatchResult();
   </script>
 </body>
 </html>

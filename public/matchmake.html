@@ -320,214 +320,161 @@
 </head>
 <body>
   <div class="matchmaking-container">
-    <div class="matchmaking-header">
-      <h1>Matchmaking</h1>
-      <p>Find your next opponent and prove your skills</p>
-    </div>
-    
-    <div class="status-container" id="statusContainer">
-      <div class="status-message" id="statusMessage">Joining matchmaking queue...</div>
-      <div class="hint-message" id="hintMessage"></div>
-      <div class="players-waiting" id="playersWaiting"></div>
-      
-      <button class="action-btn cancel-btn" id="cancelBtn">
-        <i class="fas fa-times"></i> Cancel Matchmaking
-      </button>
-    </div>
-    
-    <div id="matchFoundContainer" style="display: none;">
-      <div class="status-message">Match Found!</div>
-      
-      <div class="match-teams">
-        <div class="team-card" id="team1Card">
-          <h3 id="team1Name">Team 1</h3>
-        </div>
-        
-        <div class="vs-circle">VS</div>
-        
-        <div class="team-card" id="team2Card">
-          <h3 id="team2Name">Team 2</h3>
-        </div>
-      </div>
-      
-      <div class="loading-spinner"></div>
-      <p>Simulating match...</p>
-    </div>
-    
-    <div id="matchResults" style="display: none;">
-      <div class="result-card">
-        <div class="result-title">Match Results</div>
-        
-        <div class="goals-container" id="goalsContainer"></div>
-        
-        <div class="stats-grid" id="statsGrid"></div>
-        
-        <button class="action-btn" id="backToLobbyBtn">
-          <i class="fas fa-arrow-left"></i> Back to Lobby
-        </button>
-      </div>
-    </div>
+  <div class="matchmaking-header">
+    <h1>Matchmaking</h1>
+    <p>Find your next opponent and prove your skills</p>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-  const statusMessage = document.getElementById('statusMessage');
-  const hintMessage = document.getElementById('hintMessage');
-  const playersWaiting = document.getElementById('playersWaiting');
-  const cancelBtn = document.getElementById('cancelBtn');
-  const statusContainer = document.getElementById('statusContainer');
-  const matchFoundContainer = document.getElementById('matchFoundContainer');
+  <div class="status-container" id="statusContainer">
+    <div class="status-message" id="statusMessage">Joining matchmaking queue...</div>
+    <div class="hint-message" id="hintMessage"></div>
+    <div class="players-waiting" id="playersWaiting"></div>
 
-  const currentUser = JSON.parse(localStorage.getItem('user'));
-  if (!currentUser || !currentUser.playerName) {
-    window.location.href = '/login';
-    return;
-  }
+    <button class="action-btn cancel-btn" id="cancelBtn">
+      <i class="fas fa-times"></i> Cancel Matchmaking
+    </button>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const statusMessage = document.getElementById('statusMessage');
+    const hintMessage = document.getElementById('hintMessage');
+    const playersWaiting = document.getElementById('playersWaiting');
+    const cancelBtn = document.getElementById('cancelBtn');
 
-  const hints = [
-    "Did you know? The average football match has 11 goals per season.",
-    "Pro tip: Midfielders with high stamina can dominate the game in later stages.",
-    "Fun fact: The fastest goal in professional football was scored in 2.8 seconds!",
-    "Strategy tip: Balanced teams perform better than those focused only on attack.",
-    "Historical fact: The first football match was played in 1863.",
-    "Training tip: Daily drills improve your players' skills by up to 15%."
-  ];
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser || !currentUser.playerName) {
+        window.location.href = '/login';
+        return;
+    }
 
-  let matchmakingInterval;
-  let hintInterval;
+    const hints = [
+        "Did you know? The average football match has 11 goals per season.",
+        "Pro tip: Midfielders with high stamina can dominate the game in later stages.",
+        "Fun fact: The fastest goal in professional football was scored in 2.8 seconds!",
+        "Strategy tip: Balanced teams perform better than those focused only on attack.",
+        "Historical fact: The first football match was played in 1863.",
+        "Training tip: Daily drills improve your players' skills by up to 15%."
+    ];
 
-  startMatchmaking();
+    let hintInterval;
+    let checkMatchInterval;
 
-  function startMatchmaking() {
-    fetch('/add-to-waiting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.playerName })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.matched) {
-        handleMatchFound(data.matched);
-      } else {
-        updateWaitingStatus();
-        startCheckingForMatch();
-        showRandomHint();
-        hintInterval = setInterval(showRandomHint, 8000);
-      }
-    })
-    .catch(err => {
-      console.error('Matchmaking error:', err);
-      statusMessage.textContent = 'Error joining matchmaking';
-    });
-  }
+    startMatchmaking();
 
-  function updateWaitingStatus() {
-    fetch('/get-waiting-list')
-      .then(res => res.json())
-      .then(data => {
-        playersWaiting.innerHTML = '';
-        const list = data.waitingList || [];
-        if (list.length > 0) {
-          list.forEach(player => {
-            const badge = document.createElement('div');
-            badge.className = 'player-badge';
-            badge.innerHTML = `<i class="fas fa-user"></i> ${player}`;
-            playersWaiting.appendChild(badge);
-          });
-          statusMessage.textContent = `Waiting for opponent (${list.length} in queue)...`;
-        } else {
-          statusMessage.textContent = 'Connecting to matchmaking service...';
-        }
-      })
-      .catch(err => {
-        console.error('Error getting waiting list:', err);
-      });
-  }
-
-  function startCheckingForMatch() {
-    matchmakingInterval = setInterval(() => {
-      fetch('/get-waiting-list')
+    function startMatchmaking() {
+        fetch('/add-to-waiting', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.playerName })
+        })
         .then(res => res.json())
         .then(data => {
-          const list = data.waitingList || [];
-          if (list.length >= 2) {
-            const shuffled = list.sort(() => 0.5 - Math.random());
-            const [player1, player2] = shuffled;
-
-            if (player1 === currentUser.playerName || player2 === currentUser.playerName) {
-              clearInterval(matchmakingInterval);
-              clearInterval(hintInterval);
-              handleMatchFound([player1, player2]);
+            if (data.matched) {
+                createAndRedirectToMatch(data.matched);
+            } else {
+                updateWaitingStatus();
+                startCheckingForMatch();
+                showRandomHint();
+                hintInterval = setInterval(showRandomHint, 8000);
             }
-          }
         })
         .catch(err => {
-          console.error('Error checking for match:', err);
+            console.error('Matchmaking error:', err);
+            statusMessage.textContent = 'Error joining matchmaking';
         });
-    }, 3000);
-  }
-
-  function handleMatchFound(matchedPlayers) {
-    statusContainer.style.display = 'none';
-    matchFoundContainer.style.display = 'block';
-
-    const opponent = matchedPlayers.find(p => p !== currentUser.playerName);
-
-    setTimeout(() => {
-      simulateMatch(currentUser.playerName, opponent);
-    }, 2000);
-  }
-
-  function simulateMatch(player1, player2) {
-  fetch('/match', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ player1, player2 })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.matchId) {
-      const matchLink = `/matchx?id=${data.matchId}`;
-      window.location.href = matchLink;
-    } else {
-      console.error('No matchId in response:', data);
-      window.location.href = '/';
     }
-  })
-  .catch(err => {
-    console.error('Match simulation failed:', err);
-    window.location.href = '/';
-  });
-}
 
-  function showRandomHint() {
-    const hint = hints[Math.floor(Math.random() * hints.length)];
-    hintMessage.textContent = hint;
-    hintMessage.style.opacity = 0;
-    setTimeout(() => {
-      hintMessage.style.transition = 'opacity 0.5s';
-      hintMessage.style.opacity = 1;
-    }, 100);
-  }
+    function updateWaitingStatus() {
+        fetch('/waiting-count')
+            .then(res => res.json())
+            .then(data => {
+                playersWaiting.textContent = `Players waiting: ${data.count}`;
+            })
+            .catch(err => {
+                console.error('Error fetching waiting count:', err);
+            });
+    }
 
-  cancelBtn.addEventListener('click', () => {
-    clearInterval(matchmakingInterval);
-    clearInterval(hintInterval);
+    function startCheckingForMatch() {
+        checkMatchInterval = setInterval(() => {
+            fetch('/check-match', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser.playerName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.matched) {
+                    clearInterval(checkMatchInterval);
+                    clearInterval(hintInterval);
+                    createAndRedirectToMatch(data.matched);
+                }
+            })
+            .catch(err => {
+                console.error('Error checking for match:', err);
+            });
+        }, 3000);
+    }
 
-    fetch('/remove-from-waiting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUser.playerName })
-    })
-    .then(() => {
-      window.location.href = '/';
-    })
-    .catch(err => {
-      console.error('Error canceling matchmaking:', err);
-      window.location.href = '/';
+    function createAndRedirectToMatch(matchedPlayer) {
+        statusMessage.textContent = 'Creating match...';
+        
+        fetch('/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                player1: currentUser.playerName,
+                player2: matchedPlayer 
+            })
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('Failed to create match');
+            }
+            return res.json();
+        })
+        .then(matchData => {
+            if (!matchData.matchId) {
+                throw new Error('Match ID is undefined');
+            }
+            redirectToMatch(matchData);
+        })
+        .catch(err => {
+            console.error('Error creating match:', err);
+            statusMessage.textContent = 'Error creating match. Please try again.';
+            // Restart matchmaking if creation fails
+            setTimeout(startMatchmaking, 3000);
+        });
+    }
+
+    function redirectToMatch(matchData) {
+        console.log('Match created successfully:', matchData);
+        const matchLink = `/matchx?id=${matchData.matchId}`;
+        window.location.href = matchLink;
+    }
+
+    function showRandomHint() {
+        const randomHint = hints[Math.floor(Math.random() * hints.length)];
+        hintMessage.textContent = randomHint;
+    }
+
+    cancelBtn.addEventListener('click', () => {
+        fetch('/cancel-matchmaking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.playerName })
+        })
+        .then(() => {
+            clearInterval(checkMatchInterval);
+            clearInterval(hintInterval);
+            window.location.href = '/lobby';
+        })
+        .catch(err => {
+            console.error('Error cancelling matchmaking:', err);
+        });
     });
-  });
 });
-  </script>
+</script>
 </body>
 </html>

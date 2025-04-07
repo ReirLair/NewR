@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quick Matchmaker</title>
+  <style>
+    #matchLinkContainer {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      max-width: 500px;
+    }
+    #linkInput {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    #copyButton {
+      padding: 8px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #copyButton:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quick Matchmaking</h1>
+  <p id="status">Press Ready to find an opponent!</p>
+  <button id="readyButton">Ready</button>
+
+  <div id="matchLinkContainer" style="display: none;"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const readyButton = document.getElementById('readyButton');
+      const status = document.getElementById('status');
+      const matchLinkContainer = document.getElementById('matchLinkContainer');
+
+      // Get user from localStorage
+      const loggedPlayer = localStorage.getItem('user');
+      let playerData = null;
+
+      if (loggedPlayer) {
+        try {
+          playerData = JSON.parse(loggedPlayer);
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+          status.textContent = 'Invalid user data in localStorage.';
+          readyButton.disabled = true;
+          return;
+        }
+      } else {
+        status.textContent = 'No user found in localStorage.';
+        readyButton.disabled = true;
+        return;
+      }
+
+      const username = playerData.playerName;
+      let matchLink = '';
+      let matchInterval = null;
+
+      readyButton.addEventListener('click', async () => {
+        status.textContent = 'Adding to waiting list...';
+        readyButton.disabled = true;
+
+        try {
+          // Add user to waiting list
+          await fetch(`/wait/add?q=${encodeURIComponent(username)}`);
+
+          // Check the waiting list
+          const waitResponse = await fetch('/wait/list');
+          const waitData = await waitResponse.json();
+          const waitingUsers = waitData.waiting.filter(user => user !== username);
+
+          if (waitingUsers.length > 0) {
+            const opponent = waitingUsers[0];
+            await createMatch(username, opponent);
+          } else {
+            status.textContent = 'Waiting for an opponent...';
+            pollForOpponent();
+          }
+
+        } catch (err) {
+          console.error(err);
+          status.textContent = 'Error occurred, check console.';
+          readyButton.disabled = false;
+        }
+      });
+
+      function pollForOpponent() {
+        const interval = setInterval(async () => {
+          try {
+            const response = await fetch('/wait/list');
+            const data = await response.json();
+            const waitingUsers = data.waiting.filter(user => user !== username);
+
+            if (waitingUsers.length > 0) {
+              clearInterval(interval);
+              const opponent = waitingUsers[0];
+              await createMatch(username, opponent);
+            }
+          } catch (error) {
+            console.error('Polling error:', error);
+          }
+        }, 2000); // Check every 2 seconds
+      }
+
+      async function createMatch(player1, player2) {
+        status.textContent = `Match found! ${player1} vs ${player2}`;
+
+        try {
+          const response = await fetch('/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player1, player2 })
+          });
+
+          const data = await response.json();
+
+          if (data.matchId) {
+            matchLink = `${window.location.origin}/matchx?id=${data.matchId}`;
+            displayMatchLink(matchLink);
+
+            // Save the link for both players (single entry)
+            await fetch(`/add?link=${encodeURIComponent(matchLink)}&q=${player1}_${player2}`);
+
+            // Clean up waiting list
+            await fetch(`/wait/remove?q=${encodeURIComponent(player1)}`);
+            await fetch(`/wait/remove?q=${encodeURIComponent(player2)}`);
+
+            // Start polling to see if opponent has viewed the link
+            startLinkPolling(player1, player2);
+          } else {
+            status.textContent = 'Error: Match creation failed.';
+            readyButton.disabled = false;
+          }
+        } catch (error) {
+          console.error(error);
+          status.textContent = 'Error creating match, check console.';
+          readyButton.disabled = false;
+        }
+      }
+
+      function displayMatchLink(link) {
+        matchLinkContainer.style.display = 'block';
+        matchLinkContainer.innerHTML = `
+          <h3>Match Created!</h3>
+          <p>Share this link with your opponent or click to join:</p>
+          <input type="text" id="linkInput" value="${link}" readonly>
+          <button id="copyButton">Copy Link</button>
+          <p id="opponentStatus">Waiting for opponent to join...</p>
+          <a href="${link}" style="display: block; margin-top: 10px;">Join Match Now</a>
+        `;
+
+        document.getElementById('copyButton').addEventListener('click', () => {
+          const input = document.getElementById('linkInput');
+          input.select();
+          document.execCommand('copy');
+          alert('Link copied to clipboard!');
+        });
+      }
+
+      function startLinkPolling(player1, player2) {
+        if (matchInterval) clearInterval(matchInterval);
+        
+        matchInterval = setInterval(async () => {
+          try {
+            const response = await fetch(`/check-link?q=${player1}_${player2}`);
+            const data = await response.json();
+            
+            if (data.exists) {
+              document.getElementById('opponentStatus').textContent = 'Opponent has joined!';
+              clearInterval(matchInterval);
+            }
+          } catch (error) {
+            console.error('Link polling error:', error);
+          }
+        }, 1500);
+      }
+    });
+  </script>
+</body>
+</html>

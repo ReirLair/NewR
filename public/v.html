@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Match Simulator</title>
+</head>
+<body>
+  <h1>Simulate a Match</h1>
+  <button id="randomMatchBtn">Create Random Match</button>
+
+  <pre id="result"></pre>
+  <div id="matchLinkContainer" style="margin-top: 20px;"></div>
+
+  <script>
+    const result = document.getElementById('result');
+    const matchLinkContainer = document.getElementById('matchLinkContainer');
+    const randomMatchBtn = document.getElementById('randomMatchBtn');
+
+    randomMatchBtn.addEventListener('click', async () => {
+      try {
+        // Retrieve users from all localStorage items by looping over the keys
+        const users = [];
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          // Check if the key contains user-related info (adjust this as per your needs)
+          if (key.includes('username')) {
+            const user = localStorage.getItem(key); // Assuming user info is stored directly in localStorage
+            users.push(user);
+          }
+        }
+
+        if (users.length < 2) {
+          result.textContent = 'Error: Not enough users for a match.';
+          return;
+        }
+
+        // Pick two random users
+        const player1 = users[Math.floor(Math.random() * users.length)];
+        let player2 = users[Math.floor(Math.random() * users.length)];
+
+        // Ensure player1 and player2 are different
+        while (player2 === player1) {
+          player2 = users[Math.floor(Math.random() * users.length)];
+        }
+
+        // Send the selected players to the server to create a match
+        const response = await fetch('/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ player1: player1, player2: player2 })
+        });
+
+        const data = await response.json();
+
+        if (data.matchId) {
+          // Create the match link dynamically
+          const matchLink = `/matchx?id=${data.matchId}`;
+          result.textContent = `Match created successfully! Match ID: ${data.matchId}`;
+
+          // Display the link
+          matchLinkContainer.innerHTML = `<a href="${matchLink}" target="_blank">Click here to go to the match</a>`;
+        } else {
+          result.textContent = 'Error: Match creation failed';
+        }
+      } catch (error) {
+        result.textContent = 'Error: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>

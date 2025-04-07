@@ -450,8 +450,96 @@ app.post('/add-to-waiting', (req, res) => {
   });
 });
 
-// Enhanced match simulation with coin rewards
-// Add this to your existing backend code
+// Utility to get random int in range
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Helper to extract players by role from your JSON format
+function extractPlayersByPosition(team, positions) {
+  const players = [];
+
+  positions.forEach(pos => {
+    switch (pos) {
+      case 'CF':
+      case 'ST':
+        if (team.players.cf) players.push({ ...team.players.cf, position: 'CF' });
+        break;
+      case 'RWF':
+      case 'RW':
+        if (team.players.rwf) players.push({ ...team.players.rwf, position: 'RW' });
+        break;
+      case 'LWF':
+      case 'LW':
+        if (team.players.lwf) players.push({ ...team.players.lwf, position: 'LW' });
+        break;
+      case 'MF':
+      case 'CM':
+      case 'CDM':
+      case 'CAM':
+      case 'LM':
+      case 'RM':
+        if (Array.isArray(team.players.mf)) {
+          team.players.mf.forEach(mf => players.push({ ...mf, position: 'MF' }));
+        }
+        break;
+      case 'DF':
+      case 'CB':
+      case 'LB':
+      case 'RB':
+      case 'LWB':
+      case 'RWB':
+        if (Array.isArray(team.players.df)) {
+          team.players.df.forEach(df => players.push({ ...df, position: 'DF' }));
+        }
+        break;
+      case 'GK':
+        if (team.players.gk) players.push({ ...team.players.gk, position: 'GK' });
+        break;
+    }
+  });
+
+  return players;
+}
+
+// Simulate goals function
+function simulateGoals(attackingTeam, defendingTeam) {
+  const attackers = extractPlayersByPosition(attackingTeam, ['CF', 'ST', 'RW', 'RWF', 'LW', 'LWF']);
+  const midfielders = extractPlayersByPosition(attackingTeam, ['MF', 'CM', 'CDM', 'CAM', 'LM', 'RM']);
+  const defenders = extractPlayersByPosition(defendingTeam, ['DF', 'CB', 'LB', 'RB', 'LWB', 'RWB']);
+  const goalkeepers = extractPlayersByPosition(defendingTeam, ['GK']);
+  const goalkeeper = goalkeepers.length > 0 ? goalkeepers[0] : null;
+
+  const attackRating = attackers.reduce((sum, p) => sum + p.rating, 0) / (attackers.length || 1);
+  const midfieldRating = midfielders.reduce((sum, p) => sum + p.rating, 0) / (midfielders.length || 1);
+  const defenseRating = defenders.reduce((sum, p) => sum + p.rating, 0) / (defenders.length || 1);
+  const goalkeeperRating = goalkeeper ? goalkeeper.rating : 50; // assume weak GK if none
+
+  const chanceFactor = ((attackRating * 0.6 + midfieldRating * 0.4) - (defenseRating * 0.6 + goalkeeperRating * 0.4)) / 100;
+  const totalShots = Math.max(randomInt(5, 12) + Math.floor(chanceFactor * 10), 2);
+  const totalGoals = Math.max(Math.floor(totalShots * (0.1 + chanceFactor + Math.random() * 0.15)), 0);
+
+  const goals = [];
+
+  for (let i = 0; i < totalGoals; i++) {
+    const scorer = attackers[randomInt(0, attackers.length - 1)];
+    const assist = midfielders.length > 0 ? midfielders[randomInt(0, midfielders.length - 1)] : null;
+    const minute = randomInt(1, 90);
+
+    goals.push({
+      scorer: scorer.name,
+      assist: assist ? assist.name : null,
+      minute,
+      position: scorer.position
+    });
+  }
+
+  return {
+    totalGoals,
+    totalShots,
+    goals
+  };
+}
 
 // Store matches in memory (or use a database in production)
 const activeMatches = new Map();
@@ -470,27 +558,20 @@ app.post('/match', (req, res) => {
   }
 
   fs.readFile(usersFile, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to read users data' });
-    }
+    if (err) return res.status(500).json({ error: 'Failed to read users data' });
 
     const users = JSON.parse(data);
     const team1 = users.find(u => u.playerName === player1);
     const team2 = users.find(u => u.playerName === player2);
 
-    if (!team1 || !team2) {
-      return res.status(404).json({ error: 'One or both users not found' });
-    }
+    if (!team1 || !team2) return res.status(404).json({ error: 'One or both users not found' });
 
-    // Generate match ID
     const matchId = generateMatchId();
-    
-    // Simulate match
+
     const team1Goals = simulateGoals(team1, team2);
     const team2Goals = simulateGoals(team2, team1);
-    
-    // Determine winner and calculate coin reward
-    const scoreDiff = Math.abs(team1Goals.totalGoals - team2Goals.totalGoals);
+
+    const scoreDiff = team1Goals.totalGoals - team2Goals.totalGoals;
     let winner = null;
     let coinReward = 0;
 
@@ -504,24 +585,38 @@ app.post('/match', (req, res) => {
       coinReward = 250;
     }
 
-    // Update users with new coin balances
     const updatedUsers = users.map(user => {
       if (user.playerName === winner) {
         return { ...user, coins: (user.coins || 0) + coinReward };
-      } else if (team1Goals.totalGoals === team2Goals.totalGoals && 
-                (user.playerName === player1 || user.playerName === player2)) {
+      } else if (team1Goals.totalGoals === team2Goals.totalGoals &&
+        (user.playerName === player1 || user.playerName === player2)) {
         return { ...user, coins: (user.coins || 0) + coinReward };
       }
       return user;
     });
 
-    // Save updated users
     fs.writeFile(usersFile, JSON.stringify(updatedUsers), (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update users data' });
-      }
+      if (err) return res.status(500).json({ error: 'Failed to update users data' });
 
-      // Prepare match result
+      // Combine and sort goals by minute
+      const allGoals = [
+        ...team1Goals.goals.map(g => ({ ...g, team: team1.teamName || team1.playerName })),
+        ...team2Goals.goals.map(g => ({ ...g, team: team2.teamName || team2.playerName }))
+      ].sort((a, b) => a.minute - b.minute);
+
+      // Count goals per player for top scorer
+      const scorerMap = {};
+      allGoals.forEach(goal => {
+        if (!scorerMap[goal.scorer]) scorerMap[goal.scorer] = 0;
+        scorerMap[goal.scorer]++;
+      });
+
+      const topScorerGoals = Math.max(...Object.values(scorerMap), 0);
+      const topScorers = Object.keys(scorerMap).filter(scorer => scorerMap[scorer] === topScorerGoals);
+
+      const team1Possession = Math.floor(Math.random() * 20) + 40;
+      const team2Possession = 100 - team1Possession;
+
       const matchResult = {
         matchId,
         winner,
@@ -530,52 +625,53 @@ app.post('/match', (req, res) => {
           team2Goals: team2Goals.totalGoals,
           team1Shots: team1Goals.totalShots,
           team2Shots: team2Goals.totalShots,
-          team1Possession: Math.floor(Math.random() * 20) + 40,
-          team2Possession: 100 - (Math.floor(Math.random() * 20) + 40),
-          team1Corners: Math.floor(team1Goals.totalGoals * 1.5) + Math.floor(Math.random() * 3),
-          team2Corners: Math.floor(team2Goals.totalGoals * 1.5) + Math.floor(Math.random() * 3),
-          team1Fouls: Math.floor(Math.random() * 15),
-          team2Fouls: Math.floor(Math.random() * 15),
+          team1Possession,
+          team2Possession,
+          team1Corners: Math.floor(team1Goals.totalGoals * 1.5) + randomInt(1, 3),
+          team2Corners: Math.floor(team2Goals.totalGoals * 1.5) + randomInt(1, 3),
+          team1Fouls: randomInt(5, 15),
+          team2Fouls: randomInt(5, 15),
           coinReward
         },
-        goals: [
-          ...team1Goals.goals.map(g => ({
-            ...g,
-            team: team1.teamName || team1.playerName
-          })),
-          ...team2Goals.goals.map(g => ({
-            ...g,
-            team: team2.teamName || team2.playerName
-          }))
-        ].sort((a, b) => parseInt(a.time) - parseInt(b.time)),
-        team1: team1.teamName || team1.playerName,
-        team2: team2.teamName || team2.playerName,
-        players: [player1, player2],
-        timestamp: new Date().toISOString()
+        goals: allGoals.map(goal => ({
+          minute: goal.minute,
+          scorer: goal.scorer,
+          assist: goal.assist,
+          team: goal.team,
+          position: goal.position
+        })),
+        topScorers: topScorers.map(name => ({
+          name,
+          goals: topScorerGoals
+        }))
       };
 
-      // Store match result
+      // Store match in memory
       activeMatches.set(matchId, matchResult);
 
-      fs.readFile(matchesFile, 'utf8', (err, matchData) => {
-  const matches = matchData ? JSON.parse(matchData) : {};
-  matches[matchId] = matchResult;
-
-  fs.writeFile(matchesFile, JSON.stringify(matches, null, 2), (err) => {
-    if (err) {
-      console.error('Failed to save match to matches.json', err);
-    }
-  });
-});
+      // Save match to matches.json
+      const matchesFile = path.join(__dirname, 'matches.json');
       
-      // Set timeout to clear match from memory after 1 hour
-      setTimeout(() => {
-        activeMatches.delete(matchId);
-      }, 3600000);
-
-      res.json({
-        ...matchResult,
-        redirectUrl: `/matchx?id=${matchId}`
+      fs.readFile(matchesFile, 'utf8', (err, data) => {
+        let matches = {};
+        if (!err && data) {
+          try {
+            matches = JSON.parse(data);
+          } catch (parseError) {
+            console.error('Error parsing matches.json:', parseError);
+          }
+        }
+        
+        matches[matchId] = matchResult;
+        
+        fs.writeFile(matchesFile, JSON.stringify(matches), (err) => {
+          if (err) {
+            console.error('Failed to save match to matches.json:', err);
+            // Still return the match result even if saving fails
+            return res.json(matchResult);
+          }
+          return res.json(matchResult);
+        });
       });
     });
   });
@@ -584,30 +680,43 @@ app.post('/match', (req, res) => {
 // New endpoint to get match result by ID
 app.get('/match-result', (req, res) => {
   const { id } = req.query;
-  
+
   if (!id) {
     return res.status(400).json({ error: 'Match ID is required' });
   }
 
+  // Check active memory first
   const match = activeMatches.get(id);
-  
   if (match) {
     return res.json(match);
   }
 
-  // Check matches.json if not in memory
+  // Fallback: check saved matches.json
   const matchesFile = path.join(__dirname, 'matches.json');
+  
   fs.readFile(matchesFile, 'utf8', (err, data) => {
     if (err) {
+      // If file doesn't exist, return not found
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+      console.error('Error reading matches.json:', err);
       return res.status(500).json({ error: 'Failed to read saved matches' });
     }
 
-    const matches = data ? JSON.parse(data) : {};
-    if (!matches[id]) {
-      return res.status(404).json({ error: 'Match not found' });
-    }
+    try {
+      const matches = data ? JSON.parse(data) : {};
+      const savedMatch = matches[id];
 
-    return res.json(matches[id]);
+      if (!savedMatch) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+
+      return res.json(savedMatch);
+    } catch (parseError) {
+      console.error('Error parsing matches.json:', parseError);
+      return res.status(500).json({ error: 'Failed to parse saved matches' });
+    }
   });
 });
 
@@ -652,8 +761,168 @@ app.get('/matchx', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'matchx.html'));
 });
 
+const waitFile = './wait.json';
+
+// Helper to read and write JSON
+function readWaitList() {
+  return JSON.parse(fs.readFileSync(waitFile, 'utf-8'));
+}
+
+function writeWaitList(data) {
+  fs.writeFileSync(waitFile, JSON.stringify(data, null, 2));
+}
+
+// Route to add user
+app.get('/wait/add', (req, res) => {
+  const username = req.query.q;
+
+  if (!username) {
+    return res.status(400).json({ error: 'Username (q) is required' });
+  }
+
+  const data = readWaitList();
+
+  if (data.waiting.includes(username)) {
+    return res.status(400).json({ error: 'User already in waiting list' });
+  }
+
+  data.waiting.push(username);
+  writeWaitList(data);
+
+  res.json({ message: 'User added to waiting list', waiting: data.waiting });
+});
+
+// Route to remove user
+app.get('/wait/remove', (req, res) => {
+  const username = req.query.q;
+
+  if (!username) {
+    return res.status(400).json({ error: 'Username (q) is required' });
+  }
+
+  const data = readWaitList();
+
+  if (!data.waiting.includes(username)) {
+    return res.status(400).json({ error: 'User not found in waiting list' });
+  }
+
+  data.waiting = data.waiting.filter(user => user !== username);
+  writeWaitList(data);
+
+  res.json({ message: 'User removed from waiting list', waiting: data.waiting });
+});
+
+// Route to list users
+app.get('/wait/list', (req, res) => {
+  const data = readWaitList();
+  res.json({ waiting: data.waiting });
+});
+
 // Other endpoints (get-waiting-list, check-match, remove-from-waiting) remain the same
 // ... [include the other endpoints from your original code]
+
+const filePath = path.join(__dirname, 'links.json');
+
+// Load existing links or create empty array
+let links = [];
+if (fs.existsSync(filePath)) {
+    const data = fs.readFileSync(filePath, 'utf-8');
+    try {
+        links = JSON.parse(data);
+    } catch (err) {
+        console.error('Error parsing links.json:', err);
+        links = [];
+    }
+}
+
+// Save to file function
+function saveLinks() {
+    fs.writeFileSync(filePath, JSON.stringify(links, null, 2));
+}
+
+// Function to remove links older than 1 minute
+function removeOldLinks() {
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    links = links.filter(link => new Date(link.addedAt) > oneMinuteAgo);
+    saveLinks();
+}
+
+// Call removeOldLinks every 30 seconds to clean up expired links
+setInterval(removeOldLinks, 30 * 1000);
+
+// Route to add a link
+app.get('/add', (req, res) => {
+    const { link, q } = req.query;
+
+    if (!link) {
+        return res.status(400).send('Missing "link" parameter');
+    }
+
+    // Remove any existing links for this q (player combination)
+    links = links.filter(item => item.q !== q);
+
+    const entry = {
+        link,
+        q: q || null,
+        addedAt: new Date().toISOString()
+    };
+
+    links.push(entry);
+    saveLinks();
+
+    res.json({ message: 'Link saved', entry });
+});
+
+// Route to get all links
+app.get('/links', (req, res) => {
+    res.json(links);
+});
+
+// Route to check for a specific link
+app.get('/check-link', (req, res) => {
+    const { q } = req.query;
+    
+    if (!q) {
+        return res.status(400).json({ error: 'Missing "q" parameter' });
+    }
+
+    // First clean up old links
+    removeOldLinks();
+
+    // Find the most recent link for this query
+    const linkEntry = links.find(link => link.q === q);
+
+    if (linkEntry) {
+        res.json({
+            exists: true,
+            link: linkEntry.link,
+            addedAt: linkEntry.addedAt
+        });
+    } else {
+        res.json({
+            exists: false
+        });
+    }
+});
+
+// Route to remove a specific link
+app.get('/remove-link', (req, res) => {
+    const { q } = req.query;
+    
+    if (!q) {
+        return res.status(400).json({ error: 'Missing "q" parameter' });
+    }
+
+    const initialLength = links.length;
+    links = links.filter(link => link.q !== q);
+    
+    if (links.length < initialLength) {
+        saveLinks();
+        res.json({ success: true, message: 'Link removed' });
+    } else {
+        res.json({ success: false, message: 'No matching link found' });
+    }
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;
