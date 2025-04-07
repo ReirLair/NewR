@@ -72,52 +72,79 @@
   </div>
 
   <script>
-    async function fetchMatchResult() {
-      const params = new URLSearchParams(window.location.search);
-      const matchId = params.get('id');
+  async function fetchMatchResult() {
+    const params = new URLSearchParams(window.location.search);
+    const matchId = params.get('id');
 
-      if (!matchId) {
-        document.getElementById('matchContent').innerText = 'No match ID provided.';
+    if (!matchId) {
+      document.getElementById('matchContent').innerText = 'No match ID provided.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/match-result?id=${matchId}`);
+      const data = await res.json();
+
+      if (data.error) {
+        document.getElementById('matchContent').innerText = data.error;
         return;
       }
 
-      try {
-        const res = await fetch(`/match-result?id=${matchId}`);
-        const data = await res.json();
+      const stats = data.stats;
+      const goals = data.goals || [];
+      const topScorers = data.topScorers || [];
 
-        if (data.error) {
-          document.getElementById('matchContent').innerText = data.error;
-          return;
-        }
+      let html = `
+        <div class="teams">
+          <div>${data.team1 || 'Team 1'}</div>
+          <div>${stats.team1Goals} - ${stats.team2Goals}</div>
+          <div>${data.team2 || 'Team 2'}</div>
+        </div>
+        <div class="winner">Winner: ${data.winner === 'player1' ? (data.team1 || 'Team 1') : (data.team2 || 'Team 2')}</div>
+        <div class="stat">Shots: ${stats.team1Shots} - ${stats.team2Shots}</div>
+        <div class="stat">Possession: ${stats.team1Possession}% - ${stats.team2Possession}%</div>
+        <div class="stat">Corners: ${stats.team1Corners} - ${stats.team2Corners}</div>
+        <div class="stat">Fouls: ${stats.team1Fouls} - ${stats.team2Fouls}</div>
+        <div class="stat">Coin Reward: ${stats.coinReward}</div>
+      `;
 
-        const stats = data.stats;
-        const goals = data.goals;
-
-        let html = `
-          <div class="teams">
-            <div>${data.team1}</div>
-            <div>${stats.team1Goals} - ${stats.team2Goals}</div>
-            <div>${data.team2}</div>
-          </div>
-          <div class="winner">${data.winner ? `Winner: ${data.winner}` : 'Draw'}</div>
-          <div class="stat">Shots: ${stats.team1Shots} - ${stats.team2Shots}</div>
-          <div class="stat">Possession: ${stats.team1Possession}% - ${stats.team2Possession}%</div>
-          <div class="stat">Corners: ${stats.team1Corners} - ${stats.team2Corners}</div>
-          <div class="stat">Fouls: ${stats.team1Fouls} - ${stats.team2Fouls}</div>
-          <div class="stat">Coin Reward: ${stats.coinReward}</div>
-          <div class="goals"><h3>Goals</h3>
-            ${goals.map(goal => `<div class="goal">${goal.time}' - ${goal.scorer} (${goal.team})</div>`).join('')}
-          </div>
-        `;
-
-        document.getElementById('matchContent').innerHTML = html;
-
-      } catch (error) {
-        document.getElementById('matchContent').innerText = 'Error loading match data.';
+      // Goals section
+      if (goals.length > 0) {
+        html += `<div class="goals"><h3>Goals</h3>`;
+        goals.forEach(goal => {
+          html += `
+            <div class="goal">
+              ${goal.minute}' - <strong>${goal.scorer}</strong> (${goal.position}, ${goal.team})
+              <br>
+              Assist: ${goal.assist}
+            </div>
+          `;
+        });
+        html += `</div>`;
       }
-    }
 
-    fetchMatchResult();
-  </script>
+      // Top Scorers section
+      if (topScorers.length > 0) {
+        html += `<div class="goals"><h3>Top Scorers</h3>`;
+        topScorers.forEach(player => {
+          html += `
+            <div class="goal">
+              ${player.name}: ${player.goals} goals
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      document.getElementById('matchContent').innerHTML = html;
+
+    } catch (error) {
+      console.error(error);
+      document.getElementById('matchContent').innerText = 'Failed to fetch match data.';
+    }
+  }
+
+  fetchMatchResult();
+</script>
 </body>
 </html>
