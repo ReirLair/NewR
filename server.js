@@ -493,9 +493,6 @@ function simulateGoals(attackingTeam, defendingTeam) {
   };
 }
 
-// Enhanced match simulation with coin rewards
-// Add this to your existing backend code
-
 // Store matches in memory (or use a database in production)
 const activeMatches = new Map();
 
@@ -601,7 +598,33 @@ app.post('/match', (req, res) => {
         }))
       };
 
-      res.json(matchResult);
+      // Store match in memory
+      activeMatches.set(matchId, matchResult);
+
+      // Save match to matches.json
+      const matchesFile = path.join(__dirname, 'matches.json');
+      
+      fs.readFile(matchesFile, 'utf8', (err, data) => {
+        let matches = {};
+        if (!err && data) {
+          try {
+            matches = JSON.parse(data);
+          } catch (parseError) {
+            console.error('Error parsing matches.json:', parseError);
+          }
+        }
+        
+        matches[matchId] = matchResult;
+        
+        fs.writeFile(matchesFile, JSON.stringify(matches), (err) => {
+          if (err) {
+            console.error('Failed to save match to matches.json:', err);
+            // Still return the match result even if saving fails
+            return res.json(matchResult);
+          }
+          return res.json(matchResult);
+        });
+      });
     });
   });
 });
@@ -625,6 +648,10 @@ app.get('/match-result', (req, res) => {
   
   fs.readFile(matchesFile, 'utf8', (err, data) => {
     if (err) {
+      // If file doesn't exist, return not found
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Match not found' });
+      }
       console.error('Error reading matches.json:', err);
       return res.status(500).json({ error: 'Failed to read saved matches' });
     }
