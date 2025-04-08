@@ -322,7 +322,7 @@
       
       <button class="action-btn" id="luckRoyaleBtn">
         <i class="fas fa-crown"></i>
-        Luck Royale
+        Leaderboard
       </button>
       
       <button class="action-btn" id="matchmakeBtn">
@@ -337,7 +337,7 @@
       
       <button class="action-btn" id="eventsBtn">
         <i class="fas fa-calendar-star"></i>
-        Events
+        Ai-Match
       </button>
     </div>
     
@@ -403,11 +403,11 @@
 
   // Button functionalities with proper routing
   document.getElementById('teamBtn').addEventListener('click', () => {
-    window.location.href = '/team';
+    window.location.href = '/team.html';
   });
 
   document.getElementById('luckRoyaleBtn').addEventListener('click', () => {
-    window.location.href = '/luck-royale';
+    window.location.href = '/lead.html';
   });
 
   document.getElementById('matchmakeBtn').addEventListener('click', async () => {
@@ -437,7 +437,7 @@
       });
 
       // Always redirect to matchmake screen
-      window.location.href = '/matchmake';
+      window.location.href = '/x.html';
     } catch (error) {
       console.error('Matchmaking error:', error);
       alert('Failed to start matchmaking');
@@ -446,11 +446,11 @@
   });
 
   document.getElementById('storeBtn').addEventListener('click', () => {
-    window.location.href = '/store';
+    window.location.href = '/vb.html';
   });
 
   document.getElementById('eventsBtn').addEventListener('click', () => {
-    window.location.href = '/events';
+    window.location.href = '/ai.html';
   });
 
   document.getElementById('profileBtn').addEventListener('click', () => {

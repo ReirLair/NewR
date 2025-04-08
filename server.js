@@ -1,10 +1,15 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
 
 app.use(express.json());
 app.use(express.static('public')); // Serve public folder
+const server = http.createServer(app);
+const io = new Server(server);
 
 // Load players.json at startup
 let playersData = JSON.parse(fs.readFileSync('players.json', 'utf-8')).players;
@@ -37,6 +42,32 @@ function getLowestRatedPlayers(position, count = 1) {
 
   return count === 1 ? selectedPlayers[0] : selectedPlayers;
 }
+let waitingUsers = [];
+let matches = [];
+
+io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
+    socket.on('joinQueue', (username) => {
+        waitingUsers.push({ username, socketId: socket.id });
+
+        if (waitingUsers.length >= 2) {
+            const [player1, player2] = waitingUsers.splice(0, 2);
+            const matchId = `${player1.username}_${player2.username}`;
+            const matchLink = `/matchx?id=${matchId}`;
+
+            matches.push({ matchId, link: matchLink });
+
+            io.to(player1.socketId).emit('matchFound', { link: matchLink });
+            io.to(player2.socketId).emit('matchFound', { link: matchLink });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        waitingUsers = waitingUsers.filter(user => user.socketId !== socket.id);
+        console.log('User disconnected:', socket.id);
+    });
+});
 
 // Register endpoint
 app.post('/register', (req, res) => {
@@ -262,9 +293,9 @@ app.post('/substitute', (req, res) => {
 
 // Add new player to subs endpoint
 app.post('/add-sub', (req, res) => {
-  const { playerName, newPlayerId } = req.body;
+  const { playerName, newPlayerId, amount } = req.body;
 
-  if (!playerName || newPlayerId === undefined) {
+  if (!playerName || newPlayerId === undefined || amount === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -280,6 +311,11 @@ app.post('/add-sub', (req, res) => {
   }
 
   const user = users[userIndex];
+
+  // Check if user has enough coins
+  if (user.coins < amount) {
+    return res.status(400).json({ error: 'Not enough coins' });
+  }
 
   // Step 1: Find the player in players.json
   let foundPlayer = null;
@@ -307,82 +343,19 @@ app.post('/add-sub', (req, res) => {
 
   user.players.subs.push(foundPlayer);
 
-  // Step 4: Mark as assigned and save
+  // Step 4: Deduct coins and mark player as assigned
+  user.coins -= amount;
   assignedPlayerIds.add(foundPlayer.id);
+
+  // Step 5: Save updated data
   users[userIndex] = user;
   fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
 
-  res.json({ message: 'Player added to substitutes successfully!', player: foundPlayer });
-});
-
-// Add these endpoints to your existing backend
-
-// Get waiting list
-app.get('/get-waiting-list', (req, res) => {
-  const waitingFile = './waiting.json';
-  
-  fs.readFile(waitingFile, 'utf8', (err, data) => {
-    if (err && err.code !== 'ENOENT') {
-      return res.status(500).json({ error: 'Failed to read waiting list' });
-    }
-
-    const waitingList = data ? JSON.parse(data) : [];
-    res.json({ waitingList });
+  res.json({
+    message: 'Player added to substitutes and coins deducted successfully!',
+    player: foundPlayer,
+    remainingCoins: user.coins
   });
-});
-
-// Check for match
-
-// Remove from waiting list
-app.post('/remove-from-waiting', (req, res) => {
-  const { username } = req.body;
-
-  if (!username) {
-    return res.status(400).json({ error: 'Username is required' });
-  }
-
-  const waitingFile = './waiting.json';
-  
-  fs.readFile(waitingFile, 'utf8', (err, data) => {
-    if (err && err.code !== 'ENOENT') {
-      return res.status(500).json({ error: 'Failed to read waiting list' });
-    }
-
-    let waitingList = data ? JSON.parse(data) : [];
-    waitingList = waitingList.filter(player => player !== username);
-    
-    fs.writeFile(waitingFile, JSON.stringify(waitingList, null, 2), (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update waiting list' });
-      }
-      
-      return res.json({ success: true });
-    });
-  });
-});
-
-// Enhanced match simulation
-const waitingFile = path.join(__dirname, 'waiting.json');
-if (!fs.existsSync(waitingFile)) {
-  fs.writeFileSync(waitingFile, JSON.stringify([]));
-}
-
-// Get team data endpoint
-app.get('/team/:username', (req, res) => {
-  const { username } = req.params;
-  
-  if (!fs.existsSync('users.json')) {
-    return res.status(404).json({ error: 'No users found' });
-  }
-
-  const users = JSON.parse(fs.readFileSync('users.json'));
-  const team = users.find(u => u.playerName === username);
-
-  if (!team) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-
-  res.json(team);
 });
 
 // Add to waiting list endpoint
@@ -823,106 +796,306 @@ app.get('/wait/list', (req, res) => {
 
 const filePath = path.join(__dirname, 'links.json');
 
-// Load existing links or create empty array
 let links = [];
 if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath, 'utf-8');
     try {
-        links = JSON.parse(data);
-    } catch (err) {
-        console.error('Error parsing links.json:', err);
+        links = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
         links = [];
     }
 }
 
-// Save to file function
 function saveLinks() {
     fs.writeFileSync(filePath, JSON.stringify(links, null, 2));
 }
 
-// Function to remove links older than 1 minute
 function removeOldLinks() {
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const oneMinuteAgo = new Date(Date.now() - 60000);
     links = links.filter(link => new Date(link.addedAt) > oneMinuteAgo);
     saveLinks();
 }
 
-// Call removeOldLinks every 30 seconds to clean up expired links
-setInterval(removeOldLinks, 30 * 1000);
+setInterval(removeOldLinks, 30000);
 
-// Route to add a link
 app.get('/add', (req, res) => {
     const { link, q } = req.query;
-
-    if (!link) {
-        return res.status(400).send('Missing "link" parameter');
-    }
-
-    // Remove any existing links for this q (player combination)
+    if (!link) return res.status(400).send('Missing link');
     links = links.filter(item => item.q !== q);
-
-    const entry = {
-        link,
-        q: q || null,
-        addedAt: new Date().toISOString()
-    };
-
-    links.push(entry);
+    links.push({ link, q, addedAt: new Date().toISOString() });
     saveLinks();
-
-    res.json({ message: 'Link saved', entry });
+    res.json({ message: 'Link saved' });
 });
 
-// Route to get all links
-app.get('/links', (req, res) => {
-    res.json(links);
-});
+// Sample backend data store
+// Example: [{ q: 'user1_user2', link: '...', joined: ['user1'] }]
 
-// Route to check for a specific link
+// /check-link?q=user1_user2&player=user1
+// Sample backend data store
+ // Example: [{ q: 'user1_user2', link: '...', joined: ['user1'] }]
+
+// /check-link?q=user1_user2&player=user1
 app.get('/check-link', (req, res) => {
-    const { q } = req.query;
-    
-    if (!q) {
-        return res.status(400).json({ error: 'Missing "q" parameter' });
+  const { q, player } = req.query;
+  const match = links.find(item => item.q === q);
+
+  if (!match) return res.json({ exists: false });
+
+  // Track who joined
+  if (!match.joined) match.joined = [];
+  if (!match.joined.includes(player)) match.joined.push(player);
+
+  // If both players have joined, schedule link removal
+  if (match.joined.length >= 2 && !match.cleanupScheduled) {
+    match.cleanupScheduled = true; // prevent multiple timeouts
+    setTimeout(() => {
+      const index = links.findIndex(item => item.q === q);
+      if (index !== -1) links.splice(index, 1); // Remove the link
+    }, 50000); // 50 seconds
+  }
+
+  res.json({ exists: true });
+});
+
+const PROGRESS_PATH = 'progress.json';
+const USERS_PATH = 'users.json';
+
+app.post('/playMatch', (req, res) => {
+  const { playerName } = req.body;
+
+  const users = JSON.parse(fs.readFileSync(USERS_PATH));
+  const progress = JSON.parse(fs.readFileSync(PROGRESS_PATH));
+
+  const userIndex = users.findIndex(u => u.playerName === playerName);
+  if (userIndex === -1) return res.status(404).json({ error: 'User not found' });
+
+  const user = users[userIndex];
+
+  if (!progress[playerName]) {
+    progress[playerName] = {
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      eventCompleted: false
+    };
+  }
+
+  const aiTeam = generateAITeam();
+  const userRating = calculateTeamRating(user.players);
+  const aiRating = calculateTeamRating(aiTeam);
+
+  const matchData = simulateMatchDetailed(user.players, aiTeam);
+  const result = matchData.result;
+
+  if (result === 'win') {
+    progress[playerName].wins += 1;
+    user.coins += 0;
+  } else if (result === 'draw') {
+    progress[playerName].draws += 1;
+    user.coins += 0;
+  } else {
+    progress[playerName].losses += 1;
+  }
+
+  if (!progress[playerName].eventCompleted && progress[playerName].wins >= 3) {
+    progress[playerName].eventCompleted = true;
+    user.coins += 400;
+    matchData.eventReward = true;
+  } else {
+    matchData.eventReward = false;
+  }
+
+  users[userIndex] = user;
+
+  fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2));
+  fs.writeFileSync(PROGRESS_PATH, JSON.stringify(progress, null, 2));
+
+  res.json({
+    ...matchData,
+    userRating,
+    aiRating,
+    coins: user.coins,
+    progress: progress[playerName]
+  });
+});
+
+function generateAITeam() {
+  const names = ['Phantom', 'Shadow', 'Talon', 'Blitz', 'Storm', 'Zephyr', 'Fury', 'Ghost', 'Hawk', 'Viper'];
+  const randName = () => names[Math.floor(Math.random() * names.length)] + ' #' + Math.floor(Math.random() * 90 + 10);
+  const rand = () => Math.floor(Math.random() * 11) + 75;
+
+  return {
+    cf: { id: 1000, name: randName(), rating: rand() },
+    rwf: { id: 1001, name: randName(), rating: rand() },
+    lwf: { id: 1002, name: randName(), rating: rand() },
+    mf: [
+      { id: 1003, name: randName(), rating: rand() },
+      { id: 1004, name: randName(), rating: rand() },
+      { id: 1005, name: randName(), rating: rand() }
+    ],
+    df: [
+      { id: 1006, name: randName(), rating: rand() },
+      { id: 1007, name: randName(), rating: rand() },
+      { id: 1008, name: randName(), rating: rand() },
+      { id: 1009, name: randName(), rating: rand() }
+    ],
+    gk: { id: 1010, name: randName(), rating: rand() }
+  };
+}
+
+function calculateTeamRating(players) {
+  let total = 0, count = 0;
+  for (const pos in players) {
+    const pList = Array.isArray(players[pos]) ? players[pos] : [players[pos]];
+    pList.forEach(p => {
+      total += p.rating;
+      count++;
+    });
+  }
+  return Math.round(total / count);
+}
+
+function simulateMatchDetailed(userPlayers, aiPlayers) {
+  function getOffensiveRating(players) {
+    const offensivePositions = ['cf', 'rwf', 'lwf', 'mf'];
+    let total = 0, count = 0;
+    for (const pos of offensivePositions) {
+      const pList = Array.isArray(players[pos]) ? players[pos] : [players[pos]];
+      pList.forEach(p => {
+        total += p.rating;
+        count++;
+      });
+    }
+    return total / count;
+  }
+
+  function getDefensiveRating(players) {
+    const defList = Array.isArray(players.df) ? players.df : [players.df];
+    const gk = players.gk;
+    const all = [...defList, gk];
+    const total = all.reduce((sum, p) => sum + p.rating, 0);
+    return total / all.length;
+  }
+
+  function calculateGoals(attack, defense) {
+    const base = 1.2;
+    const diff = attack - defense;
+    const multiplier = 1 + (diff / 50);
+    const randomness = Math.random() * 1.5;
+    return Math.max(0, Math.round(base * multiplier + randomness));
+  }
+
+  const userAttack = getOffensiveRating(userPlayers);
+  const userDefense = getDefensiveRating(userPlayers);
+  const aiAttack = getOffensiveRating(aiPlayers);
+  const aiDefense = getDefensiveRating(aiPlayers);
+
+  const userGoals = calculateGoals(userAttack, aiDefense);
+  const aiGoals = calculateGoals(aiAttack, userDefense);
+
+  const result = userGoals > aiGoals ? 'win' : userGoals < aiGoals ? 'loss' : 'draw';
+
+  const allUserPlayers = Object.values(userPlayers).flat().flat();
+  const allAIPlayers = Object.values(aiPlayers).flat().flat();
+
+  const randomScorers = (players, goalCount) => {
+    const scorers = [];
+    for (let i = 0; i < goalCount; i++) {
+      const p = players[Math.floor(Math.random() * players.length)];
+      scorers.push({ name: p.name, minute: Math.floor(Math.random() * 90) + 1 });
+    }
+    return scorers.sort((a, b) => a.minute - b.minute);
+  };
+
+  const userScorers = randomScorers(allUserPlayers, userGoals);
+  const aiScorers = randomScorers(allAIPlayers, aiGoals);
+
+  const matchLog = [
+    ...userScorers.map(g => `${g.minute}' - ${g.name} (You)`),
+    ...aiScorers.map(g => `${g.minute}' - ${g.name} (AI)`)
+  ].sort((a, b) => parseInt(a) - parseInt(b));
+
+  return {
+    result,
+    score: `${userGoals} - ${aiGoals}`,
+    userScorers,
+    aiScorers,
+    matchLog
+  };
+}
+
+const rawData = fs.readFileSync('./players.json', 'utf-8');
+const playerData = JSON.parse(rawData).players; // Access the inner 'players' object
+
+// Endpoint to get player position by ID
+app.get('/seek', (req, res) => {
+    const playerId = parseInt(req.query.q); // e.g., ?q=34
+
+    if (!playerId) {
+        return res.status(400).json({ 
+            success: false,
+            error: 'Missing player ID (use ?q=ID)' 
+        });
     }
 
-    // First clean up old links
-    removeOldLinks();
+    let playerPosition = null;
+    let playerDetails = null;
 
-    // Find the most recent link for this query
-    const linkEntry = links.find(link => link.q === q);
+    // Search for the player in all positions
+    for (const [position, players] of Object.entries(playerData)) {
+        const player = players.find(p => p.id === playerId);
+        if (player) {
+            playerPosition = position;
+            playerDetails = {
+                id: player.id,
+                name: player.name,
+                rating: player.rating
+            };
+            break;
+        }
+    }
 
-    if (linkEntry) {
+    if (playerPosition) {
         res.json({
-            exists: true,
-            link: linkEntry.link,
-            addedAt: linkEntry.addedAt
+            success: true,
+            position: playerPosition,
+            player: playerDetails
         });
     } else {
-        res.json({
-            exists: false
+        res.status(404).json({ 
+            success: false,
+            error: 'Player not found' 
         });
     }
 });
 
-// Route to remove a specific link
 app.get('/remove-link', (req, res) => {
     const { q } = req.query;
-    
-    if (!q) {
-        return res.status(400).json({ error: 'Missing "q" parameter' });
-    }
-
-    const initialLength = links.length;
-    links = links.filter(link => link.q !== q);
-    
-    if (links.length < initialLength) {
-        saveLinks();
-        res.json({ success: true, message: 'Link removed' });
-    } else {
-        res.json({ success: false, message: 'No matching link found' });
-    }
+    const len = links.length;
+    links = links.filter(l => l.q !== q);
+    saveLinks();
+    res.json({ removed: links.length < len });
 });
+
+app.get('/matches', (req, res) => {
+  const filePath = path.join(__dirname, 'matches.json');
+
+  fs.readFile(filePath, 'utf8', (err, data) => {
+      if (err) {
+          console.error('Error reading matches.json:', err);
+          return res.status(500).json({ error: 'Could not read matches.json' });
+      }
+
+      try {
+          const jsonData = JSON.parse(data);
+          res.json(jsonData);
+      } catch (parseError) {
+          console.error('Error parsing matches.json:', parseError);
+          res.status(500).json({ error: 'Invalid JSON in matches.json' });
+      }
+  });
+});
+
+app.get('/links', (req, res) => res.json(links));
 
 // Start server
 const PORT = process.env.PORT || 3000;

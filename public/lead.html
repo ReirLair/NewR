@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Football Leaderboard</title>
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #ff4757;
+    }
+    .leaderboard-section {
+      margin-bottom: 40px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #1e1e1e;
+    }
+    tr:nth-child(even) {
+      background-color: #2e2e2e;
+    }
+  </style>
+</head>
+<body>
+  <h1>Football Leaderboard</h1>
+
+  <div class="leaderboard-section">
+    <h2>Top Players (Wins)</h2>
+    <table id="topPlayers">
+      <thead><tr><th>Player</th><th>Wins</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="leaderboard-section">
+    <h2>Top Goal Scorers</h2>
+    <table id="topScorers">
+      <thead><tr><th>Player</th><th>Goals</th><th>Team</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="leaderboard-section">
+    <h2>Top Assists</h2>
+    <table id="topAssists">
+      <thead><tr><th>Player</th><th>Assists</th><th>Team</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function fetchMatches() {
+      const response = await fetch('/matches');
+      const data = await response.json();
+      return data;
+    }
+
+    function aggregateData(matches) {
+      const playerWins = {};
+      const goalScorers = {};
+      const assists = {};
+
+      Object.values(matches).forEach(match => {
+        // Ignore draws
+        if (!match.winner) return;
+
+        // Count player wins
+        playerWins[match.winner] = (playerWins[match.winner] || 0) + 1;
+
+        // Process goals
+        match.goals.forEach(goal => {
+          // Scorer
+          const scorerKey = `${goal.scorer}|${goal.team}`;
+          goalScorers[scorerKey] = (goalScorers[scorerKey] || 0) + 1;
+
+          // Assister
+          const assistKey = `${goal.assist}|${goal.team}`;
+          assists[assistKey] = (assists[assistKey] || 0) + 1;
+        });
+      });
+
+      return { playerWins, goalScorers, assists };
+    }
+
+    function renderTable(data, tableId, columns) {
+      const tbody = document.getElementById(tableId).querySelector('tbody');
+      tbody.innerHTML = '';
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        columns.forEach(col => {
+          const td = document.createElement('td');
+          td.textContent = item[col] ?? '';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    function prepareLeaderboard(data) {
+      // Top Players by Wins
+      const topPlayers = Object.entries(data.playerWins)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, wins]) => ({ name, wins }));
+
+      // Top Goal Scorers
+      const topScorers = Object.entries(data.goalScorers)
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, goals]) => {
+          const [name, team] = key.split('|');
+          return { name, goals, team };
+        });
+
+      // Top Assists
+      const topAssists = Object.entries(data.assists)
+        .sort((a, b) => b[1] - a[1])
+        .map(([key, assists]) => {
+          const [name, team] = key.split('|');
+          return { name, assists, team };
+        });
+
+      return { topPlayers, topScorers, topAssists };
+    }
+
+    async function initLeaderboard() {
+      const matches = await fetchMatches();
+      const data = aggregateData(matches);
+      const leaderboard = prepareLeaderboard(data);
+
+      renderTable(leaderboard.topPlayers, 'topPlayers', ['name', 'wins']);
+      renderTable(leaderboard.topScorers, 'topScorers', ['name', 'goals', 'team']);
+      renderTable(leaderboard.topAssists, 'topAssists', ['name', 'assists', 'team']);
+    }
+
+    initLeaderboard();
+  </script>
+</body>
+</html>

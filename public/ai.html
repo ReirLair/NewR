@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Match Simulator</title>
+  <style>
+    :root {
+      --primary: #4a6bff;
+      --secondary: #ff6b6b;
+      --dark: #2c3e50;
+      --light: #f8f9fa;
+      --success: #28a745;
+      --info: #17a2b8;
+      --warning: #ffc107;
+      --danger: #dc3545;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--dark);
+      background-color: #f5f7ff;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    header {
+      background: linear-gradient(135deg, var(--primary), #6a11cb);
+      color: white;
+      padding: 2rem 0;
+      text-align: center;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .welcome-message {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    
+    .game-area {
+      background: white;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .play-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.8rem 2rem;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-block;
+      margin: 0 auto;
+      box-shadow: 0 4px 8px rgba(74, 107, 255, 0.3);
+    }
+    
+    .play-btn:hover {
+      background-color: #3a5bef;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(74, 107, 255, 0.4);
+    }
+    
+    .play-btn:active {
+      transform: translateY(0);
+    }
+    
+    .play-btn.hidden {
+      display: none;
+    }
+    
+    .match-log {
+      background: white;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-top: 2rem;
+    }
+    
+    .match-log h3 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    .result-card {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      background: #f8f9ff;
+      padding: 1.5rem;
+      border-radius: 8px;
+    }
+    
+    .result-item {
+      margin-bottom: 0.5rem;
+    }
+    
+    .result-item strong {
+      display: block;
+      color: var(--dark);
+      margin-bottom: 0.2rem;
+      font-size: 0.9rem;
+    }
+    
+    .result-item span {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    
+    .highlight {
+      background-color: rgba(40, 167, 69, 0.15);
+      color: var(--success);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      display: inline-block;
+      margin: 0.5rem 0;
+      font-weight: 600;
+    }
+    
+    .match-events {
+      background: #f8f9ff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .match-events h4 {
+      color: var(--dark);
+      margin-bottom: 1rem;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 0.5rem;
+    }
+    
+    .match-event {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .match-event:last-child {
+      border-bottom: none;
+    }
+    
+    .win {
+      color: var(--success);
+      font-weight: 600;
+    }
+    
+    .draw {
+      color: var(--warning);
+      font-weight: 600;
+    }
+    
+    .loss {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    
+    .score {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-align: center;
+      margin: 1rem 0;
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      margin: 1rem 0;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    
+    .back-btn {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .match-timer {
+      font-size: 0.9rem;
+      color: var(--dark);
+      opacity: 0.8;
+      margin-top: 0.5rem;
+    }
+    
+    .live-score {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 0.3rem 1rem;
+      border-radius: 50px;
+      margin-bottom: 1rem;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      header {
+        padding: 1.5rem 0;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .game-area, .match-log {
+        padding: 1.5rem;
+      }
+      
+      .back-btn {
+        position: static;
+        margin-bottom: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .match-animation {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0;
+      gap: 1rem;
+    }
+    
+    .team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 120px;
+    }
+    
+    .team-logo {
+      width: 60px;
+      height: 60px;
+      background: #eee;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem;
+    }
+    
+    .team-name {
+      font-weight: bold;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    
+    .vs {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    
+    .ball {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="black" d="M512 256c0 141.4-114.6 256-256 256S0 397.4 0 256S114.6 0 256 0S512 114.6 512 256zM192 96c-26.5 0-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48s-21.5-48-48-48zm0 224c-26.5 0-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48s-21.5-48-48-48zm128-128c-26.5 0-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48s-21.5-48-48-48z"/></svg>') center/cover no-repeat;
+      transition: all 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-btn" onclick="window.location.href='/'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back
+    </button>
+    <div class="container">
+      <h1>AI Football Match Simulator</h1>
+      <p class="welcome-message" id="welcome"></p>
+    </div>
+  </header>
+  
+  <main class="container">
+    <section class="game-area">
+      <div id="matchAnimation" style="display: none;">
+        <div class="team">
+          <div class="team-logo">👤</div>
+          <div class="team-name" id="userTeamName">Your Team</div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team">
+          <div class="team-logo">🤖</div>
+          <div class="team-name" id="aiTeamName">AI Team</div>
+        </div>
+        <div class="ball"></div>
+      </div>
+      <div class="live-score" id="liveScore" style="display: none;">0 - 0</div>
+      <div class="match-timer" id="matchTimer" style="display: none;">0'</div>
+      <button class="play-btn" id="playBtn" onclick="playMatch()">Play Match</button>
+    </section>
+    
+    <section class="match-log" id="matchResult"></section>
+  </main>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.playerName) {
+      document.body.innerHTML = `
+        <div class="container" style="text-align: center; padding: 2rem;">
+          <h2 style="color: var(--danger);">Session Expired</h2>
+          <p>Please return to the login page to continue.</p>
+          <button onclick="window.location.href='/'" style="
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+            cursor: pointer;
+          ">Go to Login</button>
+        </div>
+      `;
+      throw new Error('User not found');
+    }
+
+    document.getElementById('welcome').innerText = `Welcome back, ${user.playerName}! Ready for your next match?`;
+
+    async function playMatch() {
+      const btn = document.getElementById('playBtn');
+      const matchAnimation = document.getElementById('matchAnimation');
+      const liveScore = document.getElementById('liveScore');
+      const matchTimer = document.getElementById('matchTimer');
+      
+      btn.disabled = true;
+      btn.textContent = 'Simulating...';
+      
+      // Show match animation
+      matchAnimation.style.display = 'flex';
+      liveScore.style.display = 'block';
+      matchTimer.style.display = 'block';
+      
+      try {
+        const res = await fetch('/playMatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerName: user.playerName })
+        });
+
+        const data = await res.json();
+        const log = document.getElementById('matchResult');
+
+        if (data.error) {
+          log.innerHTML = `
+            <div class="fade-in" style="color: var(--danger); text-align: center; padding: 1rem;">
+              <h3>Error</h3>
+              <p>${data.error}</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Simulate match progress with live updates
+        await simulateMatchProgress(data);
+        
+        // Hide animation and show final result
+        matchAnimation.style.display = 'none';
+        liveScore.style.display = 'none';
+        matchTimer.style.display = 'none';
+        
+        // Show final result
+        displayFinalResult(data);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('matchResult').innerHTML = `
+          <div class="fade-in" style="color: var(--danger); text-align: center; padding: 1rem;">
+            <h3>Connection Error</h3>
+            <p>Failed to connect to the match server. Please try again later.</p>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Play Again';
+      }
+    }
+    
+    async function simulateMatchProgress(data) {
+      const liveScore = document.getElementById('liveScore');
+      const matchTimer = document.getElementById('matchTimer');
+      const matchEvents = document.getElementById('matchEvents');
+      const userTeamName = document.getElementById('userTeamName');
+      const aiTeamName = document.getElementById('aiTeamName');
+      
+      // Set team names
+      userTeamName.textContent = user.playerName + "'s Team";
+      aiTeamName.textContent = data.aiTeamName || 'AI Team';
+      
+      // Extract goals from match log
+      const goals = data.matchLog.filter(event => event.includes('GOAL'));
+      const otherEvents = data.matchLog.filter(event => !event.includes('GOAL'));
+      
+      // Initialize score and time
+      let homeScore = 0;
+      let awayScore = 0;
+      let currentTime = 0;
+      const matchDuration = 90; // 90 minutes
+      const simulationDuration = 120000; // 2 minutes in milliseconds
+      const timeInterval = simulationDuration / matchDuration;
+      
+      // Create a temporary div for the match commentary
+      const tempCommentary = document.createElement('div');
+      tempCommentary.className = 'match-events';
+      tempCommentary.innerHTML = '<h4>Match Commentary</h4>';
+      document.getElementById('matchResult').appendChild(tempCommentary);
+      
+      // Simulate match minute by minute
+      for (let minute = 1; minute <= matchDuration; minute++) {
+        await new Promise(resolve => setTimeout(resolve, timeInterval));
+        currentTime = minute;
+        matchTimer.textContent = `${minute}'`;
+        
+        // Check if goal happens at this minute
+        const goalEvents = goals.filter(event => {
+          const eventMinute = parseInt(event.match(/\d+/));
+          return eventMinute === minute;
+        });
+        
+        // Update score if goal happens
+        goalEvents.forEach(event => {
+          if (event.includes(user.playerName)) {
+            homeScore++;
+            animateGoal('user');
+          } else {
+            awayScore++;
+            animateGoal('ai');
+          }
+          liveScore.textContent = `${homeScore} - ${awayScore}`;
+          
+          // Add goal event to commentary
+          const eventElement = document.createElement('div');
+          eventElement.className = 'match-event';
+          eventElement.textContent = event;
+          tempCommentary.appendChild(eventElement);
+          eventElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
+        
+        // Add other events at random minutes
+        if (minute % 10 === 0 && otherEvents.length > 0) {
+          const randomEvent = otherEvents[Math.floor(Math.random() * otherEvents.length)];
+          const eventIndex = otherEvents.indexOf(randomEvent);
+          if (eventIndex > -1) {
+            otherEvents.splice(eventIndex, 1);
+            
+            const eventElement = document.createElement('div');
+            eventElement.className = 'match-event';
+            eventElement.textContent = randomEvent.replace(/\d+'(?=\D*$)/, `${minute}'`);
+            tempCommentary.appendChild(eventElement);
+            eventElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          }
+        }
+      }
+      
+      // Final whistle
+      matchTimer.textContent = "90' (FT)";
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    function animateGoal(scorer) {
+      const ball = document.querySelector('.ball');
+      const userLogo = document.querySelector('.team:first-child .team-logo');
+      const aiLogo = document.querySelector('.team:last-child .team-logo');
+      
+      // Position ball at scorer
+      if (scorer === 'user') {
+        ball.style.transform = `translate(60px, 0)`;
+      } else {
+        ball.style.transform = `translate(-60px, 0)`;
+      }
+      
+      // Animate to center
+      setTimeout(() => {
+        ball.style.transform = `translate(0, 0)`;
+      }, 500);
+    }
+    
+    function displayFinalResult(data) {
+      const log = document.getElementById('matchResult');
+      
+      // Determine result class for styling
+      const resultClass = data.result.includes('win') ? 'win' : 
+                        data.result.includes('draw') ? 'draw' : 'loss';
+      
+      // Calculate win percentage for progress bar
+      const totalMatches = data.progress.wins + data.progress.draws + data.progress.losses;
+      const winPercentage = totalMatches > 0 ? 
+                          (data.progress.wins / totalMatches) * 100 : 0;
+      
+      log.innerHTML = `
+        <div class="fade-in">
+          <h3 class="${resultClass}">Result: ${data.result.toUpperCase()}</h3>
+          <div class="score">${data.score}</div>
+          
+          <div class="result-card">
+            <div class="result-item">
+              <strong>Your Team Rating</strong>
+              <span>${data.userRating}</span>
+            </div>
+            <div class="result-item">
+              <strong>AI Team Rating</strong>
+              <span>${data.aiRating}</span>
+            </div>
+            <div class="result-item">
+              <strong>Coins Earned</strong>
+              <span>${data.coins} <i class="fas fa-coins" style="color: var(--warning);"></i></span>
+            </div>
+            <div class="result-item">
+              <strong>Current Record</strong>
+              <span>${data.progress.wins}W ${data.progress.draws}D ${data.progress.losses}L</span>
+            </div>
+          </div>
+          
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${winPercentage}%"></div>
+          </div>
+          
+          ${data.eventReward ? '<p class="highlight">+400 coins: Event completed!</p>' : ''}
+        </div>
+      `;
+      
+      // Add the match commentary (already built during simulation)
+      const commentary = document.querySelector('.match-events');
+      if (commentary) {
+        log.appendChild(commentary);
+      }
+      
+      // Scroll to results
+      log.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

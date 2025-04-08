@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Team Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1b1b1b;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #333;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    header button {
+      background: #e74c3c;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+
+    header button:hover {
+      background: #c0392b;
+    }
+
+    .field-container {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      margin: 30px auto;
+      background: url('https://files.catbox.moe/yyvr95.jpeg') no-repeat center/cover;
+      height: 600px;
+      border: 4px solid #fff;
+      border-radius: 10px;
+    }
+
+    .player-card {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      color: #333;
+      padding: 8px;
+      border-radius: 6px;
+      width: 120px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    .player-card:hover {
+      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .selected {
+      background-color: #2ecc71 !important;
+      color: white;
+    }
+
+    .swap-options {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .swap-option {
+      padding: 5px 10px;
+      background: #3498db;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+
+    .swap-option:hover {
+      background: #2980b9;
+    }
+
+    #team-container {
+      max-width: 900px;
+      margin: 20px auto;
+      text-align: center;
+    }
+
+    /* Formation positions */
+    .goalkeeper { top: 90%; left: 45%; }
+    .defender1 { top: 70%; left: 20%; }
+    .defender2 { top: 70%; left: 40%; }
+    .defender3 { top: 70%; left: 60%; }
+    .defender4 { top: 70%; left: 80%; }
+    .midfielder1 { top: 50%; left: 30%; }
+    .midfielder2 { top: 50%; left: 50%; }
+    .midfielder3 { top: 50%; left: 70%; }
+    .forward1 { top: 20%; left: 25%; }
+    .forward2 { top: 20%; left: 50%; }
+    .forward3 { top: 20%; left: 75%; }
+    .substitute { top: 5%; left: 5%; }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Your Team</h1>
+    <button onclick="history.back()">Back</button>
+  </header>
+
+  <div class="field-container" id="team-container"></div>
+
+  <script>
+    let user = null;
+    let selectedPlayer = null;
+
+    async function fetchTeamData() {
+      const playerName = JSON.parse(localStorage.getItem('user'))?.playerName;
+      if (!playerName) {
+        alert('User not set in localStorage');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/team/${encodeURIComponent(playerName)}`);
+        const data = await res.json();
+        user = data;
+        renderTeam();
+      } catch (err) {
+        console.error('Failed to fetch team:', err);
+        alert('Failed to load team.');
+      }
+    }
+
+    function renderTeam() {
+      const container = document.getElementById('team-container');
+      container.innerHTML = '';
+
+      const positionMap = {
+        goalkeeper: 'goalkeeper',
+        defender: ['defender1', 'defender2', 'defender3', 'defender4'],
+        midfielder: ['midfielder1', 'midfielder2', 'midfielder3'],
+        forward: ['forward1', 'forward2', 'forward3'],
+        subs: 'substitute'
+      };
+
+      for (let position in user.players) {
+        const players = Array.isArray(user.players[position]) ? user.players[position] : [user.players[position]];
+
+        players.forEach((player, index) => {
+          const card = document.createElement('div');
+          card.className = `player-card ${Array.isArray(positionMap[position]) ? positionMap[position][index] || 'substitute' : positionMap[position]}`;
+          card.dataset.id = player.id;
+          card.dataset.position = position;
+          card.innerHTML = `<strong>${player.name}</strong><br>Rating: ${player.rating}`;
+          card.onclick = () => handlePlayerClick(player.id, position);
+          container.appendChild(card);
+        });
+      }
+    }
+
+    async function handlePlayerClick(playerId, clickedPosition) {
+      const allCards = document.querySelectorAll('.player-card');
+      allCards.forEach(c => c.classList.remove('selected'));
+
+      const clickedCard = [...allCards].find(c => c.dataset.id == playerId);
+      if (clickedCard) clickedCard.classList.add('selected');
+
+      selectedPlayer = { id: playerId, position: clickedPosition };
+
+      const oldOptions = document.querySelector('.swap-options');
+      if (oldOptions) oldOptions.remove();
+
+      const isBench = clickedPosition === "subs";
+
+      let actualPosition = clickedPosition;
+
+      if (isBench) {
+        try {
+          const res = await fetch(`/seek?q=${playerId}`);
+          const data = await res.json();
+          if (data.success) {
+            actualPosition = data.position || clickedPosition;
+          }
+        } catch (err) {
+          console.error('Error fetching position:', err);
+        }
+      }
+
+      // Further logic for swapping can go here...
+    }
+
+    fetchTeamData();
+  </script>
+
+</body>
+</html>

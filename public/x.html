@@ -3,57 +3,665 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Match Simulator</title>
+  <title>eFootball Quick Match</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Open+Sans:wght@400;600&display=swap');
+    
+    :root {
+      --pes-blue: #0038a8;
+      --pes-light-blue: #00a8e8;
+      --pes-yellow: #ffd700;
+      --pes-gold: #ffc72c;
+      --pes-dark: #0a0a1a;
+      --pes-light: #f0f4ff;
+      --pes-green: #00ff87;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-overflow-scrolling: touch;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--pes-dark);
+      color: white;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Animated Football Pitch Background */
+    .pitch-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      opacity: 0.15;
+      will-change: transform;
+    }
+    
+    /* Floating footballs */
+    .floating-ball {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 0L15 25L15 75L50 100L85 75L85 25Z" fill="white"/><path d="M50 0L50 100M15 25L85 25M15 75L85 75" stroke="black" stroke-width="2"/><circle cx="50" cy="50" r="15" fill="black"/></svg>') no-repeat center center;
+      background-size: contain;
+      z-index: -1;
+      opacity: 0.6;
+      animation: float 15s infinite linear;
+      will-change: transform;
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-50px) rotate(180deg); }
+      100% { transform: translateY(0) rotate(360deg); }
+    }
+    
+    /* Main container */
+    .container {
+      background: rgba(10, 10, 26, 0.85);
+      border: 3px solid var(--pes-light-blue);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 40px rgba(0, 168, 232, 0.3);
+      position: relative;
+      overflow: visible;
+      backdrop-filter: blur(8px);
+      z-index: 1;
+      transform: translateZ(0);
+      margin: 20px 0;
+    }
+    
+    /* Glow effect */
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0, 168, 232, 0.1) 0%, transparent 70%);
+      animation: rotate 20s linear infinite;
+      z-index: -1;
+    }
+    
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      color: var(--pes-yellow);
+      font-size: 2.8rem;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+      position: relative;
+    }
+    
+    h1::after {
+      content: '';
+      display: block;
+      width: 100px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--pes-light-blue), var(--pes-yellow));
+      margin: 15px auto;
+      border-radius: 2px;
+    }
+    
+    #status {
+      font-size: 1.3rem;
+      margin: 25px 0;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    /* Ready button */
+    #readyButton {
+      background: linear-gradient(135deg, var(--pes-light-blue), var(--pes-blue));
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 18px 50px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      margin: 25px 0;
+      box-shadow: 0 5px 15px rgba(0, 168, 232, 0.4);
+      position: relative;
+      overflow: hidden;
+      font-family: 'Montserrat', sans-serif;
+      letter-spacing: 1px;
+      transform: translateZ(0);
+    }
+    
+    #readyButton::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
+    
+    #readyButton:hover {
+      transform: translateY(-3px) translateZ(0);
+      box-shadow: 0 8px 25px rgba(0, 168, 232, 0.6);
+    }
+    
+    #readyButton:hover::before {
+      left: 100%;
+    }
+    
+    #readyButton:active {
+      transform: translateY(1px) translateZ(0);
+      box-shadow: 0 3px 10px rgba(0, 168, 232, 0.4);
+    }
+    
+    #readyButton:disabled {
+      background: #444;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    #readyButton:disabled::before {
+      display: none;
+    }
+    
+    /* Match found container */
+    #matchFoundContainer {
+      margin-top: 30px;
+      padding: 25px;
+      border: 2px solid var(--pes-light-blue);
+      border-radius: 12px;
+      background: rgba(0, 56, 168, 0.2);
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    #matchFoundContainer h3 {
+      color: var(--pes-yellow);
+      margin-top: 0;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.8rem;
+      text-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
+    }
+    
+    .opponent-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .vs-circle {
+      width: 50px;
+      height: 50px;
+      background: var(--pes-yellow);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 20px;
+      font-weight: bold;
+      color: var(--pes-dark);
+      font-family: 'Montserrat', sans-serif;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    
+    .player-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: var(--pes-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--pes-light-blue);
+      overflow: hidden;
+    }
+    
+    .player-avatar svg {
+      width: 60%;
+      height: 60%;
+      fill: white;
+    }
+    
+    #opponentStatus {
+      font-size: 1.2rem;
+      margin: 20px 0;
+      color: var(--pes-yellow);
+      font-weight: 600;
+    }
+    
+    /* Continue button */
+    .continue-button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 16px 40px;
+      background: linear-gradient(135deg, var(--pes-yellow), var(--pes-gold));
+      color: var(--pes-dark);
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+      font-family: 'Montserrat', sans-serif;
+      letter-spacing: 1px;
+      font-size: 1.2rem;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transform: translateZ(0);
+    }
+    
+    .continue-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: 0.5s;
+    }
+    
+    .continue-button:hover {
+      transform: translateY(-3px) translateZ(0);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+    }
+    
+    .continue-button:hover::before {
+      left: 100%;
+    }
+    
+    .continue-button:active {
+      transform: translateY(1px) translateZ(0);
+      box-shadow: 0 3px 10px rgba(255, 215, 0, 0.4);
+    }
+    
+    .continue-button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    /* Loading animation */
+    .loading-dots {
+      display: inline-flex;
+      margin-left: 10px;
+      align-items: center;
+      height: 20px;
+    }
+    
+    .loading-dots span {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--pes-yellow);
+      margin: 0 3px;
+      opacity: 0;
+      animation: loading 1.5s infinite ease-in-out;
+      box-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
+    }
+    
+    .loading-dots span:nth-child(1) { animation-delay: 0s; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    
+    /* Tips section */
+    .tips-container {
+      margin-top: 40px;
+      padding: 20px;
+      border-top: 1px solid rgba(0, 168, 232, 0.3);
+      position: relative;
+      min-height: 100px;
+    }
+    
+    .tips-container::before {
+      content: 'TIPS';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--pes-dark);
+      padding: 0 15px;
+      color: var(--pes-yellow);
+      font-weight: bold;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+    }
+    
+    .tip {
+      display: none;
+      animation: fadeInOut 6s ease;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .tip.active {
+      display: block;
+    }
+    
+    /* Player info */
+    .player-info {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 56, 168, 0.5);
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: 2px solid var(--pes-light-blue);
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+      z-index: 2;
+    }
+    
+    .player-info svg {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      fill: var(--pes-yellow);
+    }
+    
+    /* Animations */
+    @keyframes loading {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; transform: translateY(10px); }
+      15%, 85% { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+      50% { box-shadow: 0 0 0 15px rgba(255, 215, 0, 0); }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .container {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      #readyButton, .continue-button {
+        padding: 15px 30px;
+        font-size: 1.1rem;
+      }
+      
+      .opponent-info {
+        flex-direction: column;
+      }
+      
+      .vs-circle {
+        margin: 15px 0;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Simulate a Match</h1>
-  <form id="matchForm">
-    <label for="player1">Player 1 Name:</label>
-    <input type="text" id="player1" name="player1" required /><br><br>
+  <!-- SVG Football Pitch Background -->
+  <svg class="pitch-bg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+    <rect width="100%" height="100%" fill="#075e28"/>
+    <rect x="50" y="50" width="900" height="500" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="10,10"/>
+    <circle cx="500" cy="300" r="70" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <line x1="500" y1="50" x2="500" y2="550" stroke="#ffffff" stroke-width="2"/>
+    <rect x="50" y="200" width="100" height="200" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <rect x="850" y="200" width="100" height="200" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <circle cx="500" cy="300" r="5" fill="#ffffff"/>
+  </svg>
+  
+  <!-- Floating footballs -->
+  <div class="floating-ball" style="top:20%; left:10%; animation-delay:0s;"></div>
+  <div class="floating-ball" style="top:70%; left:80%; animation-delay:2s;"></div>
+  <div class="floating-ball" style="top:40%; left:30%; animation-delay:4s;"></div>
+  <div class="floating-ball" style="top:60%; left:60%; animation-delay:6s;"></div>
+  
+  <div class="player-info">
+    <svg viewBox="0 0 24 24">
+      <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+    </svg>
+    <span id="playerName">Guest</span>
+  </div>
+  
+  <div class="container">
+    <h1>Quick Match</h1>
+    <p id="status">Press READY to find an opponent!</p>
+    <button id="readyButton">READY</button>
 
-    <label for="player2">Player 2 Name:</label>
-    <input type="text" id="player2" name="player2" required /><br><br>
+    <div id="matchFoundContainer">
+      <h3>OPPONENT FOUND!</h3>
+      <div class="opponent-info">
+        <div class="player-avatar">
+          <svg viewBox="0 0 24 24">
+            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+          </svg>
+        </div>
+        <div class="vs-circle">VS</div>
+        <div class="player-avatar" id="opponentAvatar">
+          <svg viewBox="0 0 24 24">
+            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+          </svg>
+        </div>
+      </div>
+      <p id="opponentName">Searching for opponent...</p>
+      <p id="opponentStatus">Connecting<span class="loading-dots"><span></span><span></span><span></span></span></p>
+      <button id="continueButton" class="continue-button" disabled>CONTINUE TO MATCH</button>
+    </div>
 
-    <button type="submit">Simulate Match</button>
-  </form>
-
-  <pre id="result"></pre>
-  <div id="matchLinkContainer" style="margin-top: 20px;"></div>
+    <div class="tips-container">
+      <div class="tip active">TIP: Use quick one-touch passes to maintain possession and break defensive lines.</div>
+      <div class="tip">TIP: Master the timed through ball to create dangerous scoring opportunities.</div>
+      <div class="tip">TIP: Pay attention to player stamina - substitute tired players to maintain performance.</div>
+      <div class="tip">TIP: Experiment with different formations to counter your opponent's playstyle.</div>
+      <div class="tip">TIP: Use skill moves in the final third to create space for shots on goal.</div>
+    </div>
+  </div>
 
   <script>
-    const form = document.getElementById('matchForm');
-    const result = document.getElementById('result');
-    const matchLinkContainer = document.getElementById('matchLinkContainer');
+    document.addEventListener('DOMContentLoaded', function () {
+  const readyButton = document.getElementById('readyButton');
+  const status = document.getElementById('status');
+  const matchFoundContainer = document.getElementById('matchFoundContainer');
+  const continueButton = document.getElementById('continueButton');
+  const playerNameElement = document.getElementById('playerName');
+  const opponentNameElement = document.getElementById('opponentName');
+  const opponentAvatar = document.getElementById('opponentAvatar');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // Rotate tips every 6 seconds
+  const tips = document.querySelectorAll('.tip');
+  let currentTip = 0;
 
-      const player1 = document.getElementById('player1').value.trim();
-      const player2 = document.getElementById('player2').value.trim();
+  setInterval(() => {
+    tips[currentTip].classList.remove('active');
+    currentTip = (currentTip + 1) % tips.length;
+    tips[currentTip].classList.add('active');
+  }, 6000);
 
-      try {
-        const response = await fetch('/match', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ player1, player2 })
-        });
+  // Generate random football positions for floating balls
+  document.querySelectorAll('.floating-ball').forEach((ball, index) => {
+    ball.style.left = `${Math.random() * 80 + 10}%`;
+    ball.style.top = `${Math.random() * 80 + 10}%`;
+    ball.style.animationDelay = `${index * 2}s`;
+  });
 
-        const data = await response.json();
+  const loggedPlayer = localStorage.getItem('user');
+  let playerData = null;
+  let matchLink = '';
+  let matchInterval = null;
 
-        if (data.matchId) {
-          // Create the match link dynamically
-          const matchLink = `/matchx?id=${data.matchId}`;
-          result.textContent = `Match created successfully! Match ID: ${data.matchId}`;
+  if (!loggedPlayer) {
+    status.textContent = 'No user found. Please log in first.';
+    readyButton.disabled = true;
+    return;
+  }
 
-          // Display the link
-          matchLinkContainer.innerHTML = `<a href="${matchLink}" target="_blank">Click here to go to the match</a>`;
-        } else {
-          result.textContent = 'Error: Match creation failed';
-        }
-      } catch (error) {
-        result.textContent = 'Error: ' + error.message;
+  try {
+    playerData = JSON.parse(loggedPlayer);
+    playerNameElement.textContent = playerData.playerName || 'Guest';
+  } catch (e) {
+    status.textContent = 'Invalid user data. Please log in again.';
+    readyButton.disabled = true;
+    return;
+  }
+
+  const username = playerData.playerName;
+
+  readyButton.addEventListener('click', async () => {
+    status.textContent = 'Searching for opponent...';
+    readyButton.disabled = true;
+
+    const allLinks = await fetch('/links').then(res => res.json());
+
+    // Try to find an existing match
+    const existing = allLinks.find(item => item.q.includes(username));
+    if (existing) {
+      const players = existing.q.split('_');
+      const opponent = players.find(name => name !== username);
+      matchFound(existing.link, username, opponent);
+      return;
+    }
+
+    const waitListRes = await fetch('/wait/list');
+    const waitData = await waitListRes.json();
+    const opponent = waitData.waiting.find(user => user !== username);
+
+    if (opponent) {
+      const q = [username, opponent].sort().join('_');
+
+      // Double check if a match already exists (race condition)
+      const checkAgain = await fetch('/links').then(res => res.json());
+      const alreadyExists = checkAgain.find(item => item.q === q);
+
+      if (alreadyExists) {
+        matchFound(alreadyExists.link, username, opponent);
+        return;
       }
-    });
+
+      // Create the match
+      status.textContent = `Match found! ${username} vs ${opponent}`;
+      const matchRes = await fetch('/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ player1: username, player2: opponent })
+      });
+      const matchData = await matchRes.json();
+      matchLink = `${window.location.origin}/matchx?id=${matchData.matchId}`;
+
+      await fetch(`/add?link=${encodeURIComponent(matchLink)}&q=${q}`);
+      await fetch(`/wait/remove?q=${encodeURIComponent(username)}`);
+      await fetch(`/wait/remove?q=${encodeURIComponent(opponent)}`);
+
+      matchFound(matchLink, username, opponent);
+    } else {
+      // Add to wait list
+      await fetch(`/wait/add?q=${encodeURIComponent(username)}`);
+      status.textContent = 'Waiting for opponent...';
+
+      // Poll for someone to match with
+      pollForExistingMatch();
+    }
+  });
+
+  function matchFound(link, player, opponent) {
+    matchLink = link;
+    matchFoundContainer.style.display = 'block';
+    playerNameElement.textContent = player;
+    opponentNameElement.textContent = opponent;
+    status.textContent = 'Match ready!';
+
+    // Set opponent avatar color
+    const colors = ['#ff5252', '#4caf50', '#2196f3', '#ff9800', '#9c27b0'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    opponentAvatar.style.borderColor = randomColor;
+    opponentAvatar.querySelector('svg').style.fill = randomColor;
+
+    // Enable continue button when opponent joins
+    waitForOpponent([player, opponent].sort().join('_'), player);
+  }
+
+  function pollForExistingMatch() {
+    const interval = setInterval(async () => {
+      const all = await fetch('/links').then(res => res.json());
+      const match = all.find(item => item.q.includes(username));
+
+      if (match) {
+        clearInterval(interval);
+        const players = match.q.split('_');
+        const opponent = players.find(name => name !== username);
+        matchFound(match.link, username, opponent);
+        status.textContent = 'Match found!';
+      }
+    }, 2000);
+  }
+
+  function waitForOpponent(q, player) {
+    if (matchInterval) clearInterval(matchInterval);
+
+    matchInterval = setInterval(async () => {
+      const response = await fetch(`/check-link?q=${q}&player=${player}`);
+      const data = await response.json();
+
+      if (data.exists) {
+        document.getElementById('opponentStatus').textContent = 'Opponent connected!';
+        clearInterval(matchInterval);
+
+        // Enable and animate continue button
+        continueButton.disabled = false;
+        continueButton.style.animation = 'pulse 1.5s infinite';
+
+        // Set click handler for continue button
+        continueButton.onclick = () => {
+          window.location.href = matchLink;
+        };
+      }
+    }, 1500);
+  }
+});
   </script>
 </body>
 </html>

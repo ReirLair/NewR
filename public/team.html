@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Team Manager</title>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2980b9;
+      --success-color: #2ecc71;
+      --danger-color: #e74c3c;
+      --light-color: #2ecc71;
+      --dark-color: #2c3e50;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 20px;
+      min-height: 100vh;
+      color: var(--dark-color);
+    }
+
+    .back-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--primary-color);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+      transition: var(--transition);
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: var(--box-shadow);
+    }
+
+    .back-button:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    h1 {
+      color: var(--dark-color);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: var(--secondary-color);
+      margin: 30px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--light-color);
+      font-size: 1.5rem;
+    }
+
+    #team-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: lightgreen;
+      padding: 30px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    .team-section {
+      margin-bottom: 40px;
+    }
+
+    /* Formation styles */
+    .formation-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .formation-row {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      width: 100%;
+    }
+
+    .formation-position {
+      margin: 0 15px;
+      position: relative;
+    }
+
+    .player-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      box-shadow: var(--box-shadow);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 2px solid transparent;
+      text-align: center;
+      width: 150px;
+      position: relative;
+    }
+
+    .player-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      border-color: var(--primary-color);
+    }
+
+    .player-card strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--dark-color);
+      font-size: 1.1rem;
+    }
+
+    .player-card.selected {
+      background-color: rgba(46, 204, 113, 0.1);
+      border-color: var(--success-color);
+      transform: scale(1.02);
+    }
+
+    .player-card::before {
+      content: attr(data-position);
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      color: var(--secondary-color);
+      font-weight: bold;
+    }
+
+    .subs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+    }
+
+    .swap-options {
+      margin-top: 20px;
+      padding: 15px;
+      background: var(--light-color);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+    }
+
+    .swap-options strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--dark-color);
+    }
+
+    .swap-option {
+      display: inline-block;
+      padding: 8px 15px;
+      background: white;
+      border-radius: 20px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid var(--primary-color);
+      color: var(--primary-color);
+      font-size: 0.9rem;
+    }
+
+    .swap-option:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .formation-row {
+        flex-wrap: wrap;
+      }
+      
+      .formation-position {
+        margin: 5px;
+      }
+      
+      .player-card {
+        width: 120px;
+        padding: 10px;
+      }
+      
+      #team-container {
+        padding: 15px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-button">← Back to Home</a>
+  <h1>Your Team</h1>
+  <div id="team-container"></div>
+
+  <script>
+    let user = null;
+    let selectedPlayer = null;
+
+    // Default formation - adjust based on your team structure
+    const FORMATION = {
+      gk: [1],
+      df: [4, 4, 2],
+      mf: [4, 3, 3],
+      fw: [2, 1]
+    };
+
+    async function fetchTeamData() {
+      const playerName = JSON.parse(localStorage.getItem('user'))?.playerName;
+      if (!playerName) {
+        alert('User not set in localStorage');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/team/${encodeURIComponent(playerName)}`);
+        const data = await res.json();
+        user = data;
+        renderTeam();
+      } catch (err) {
+        console.error('Failed to fetch team:', err);
+        alert('Failed to load team.');
+      }
+    }
+
+    function renderTeam() {
+      const container = document.getElementById('team-container');
+      container.innerHTML = '';
+
+      // Render formation for non-subs first
+      for (let position in user.players) {
+        if (position === "subs") continue;
+        
+        const players = Array.isArray(user.players[position]) ? 
+                       user.players[position] : 
+                       [user.players[position]];
+
+        const section = document.createElement('div');
+        section.className = 'team-section';
+
+        const title = document.createElement('h2');
+        title.textContent = position.toUpperCase();
+        section.appendChild(title);
+
+        if (position === "gk") {
+          // Special handling for goalkeeper
+          const formationContainer = document.createElement('div');
+          formationContainer.className = 'formation-container';
+          
+          const formationRow = document.createElement('div');
+          formationRow.className = 'formation-row';
+          
+          players.forEach(player => {
+            const posDiv = document.createElement('div');
+            posDiv.className = 'formation-position';
+            
+            const card = createPlayerCard(player, position);
+            posDiv.appendChild(card);
+            formationRow.appendChild(posDiv);
+          });
+          
+          formationContainer.appendChild(formationRow);
+          section.appendChild(formationContainer);
+        } else {
+          // Handle other positions with formation layout
+          const formationContainer = document.createElement('div');
+          formationContainer.className = 'formation-container';
+          
+          // Create rows based on formation
+          const formationRows = FORMATION[position] || [players.length];
+          let playerIndex = 0;
+          
+          formationRows.forEach(rowCount => {
+            const formationRow = document.createElement('div');
+            formationRow.className = 'formation-row';
+            
+            for (let i = 0; i < rowCount && playerIndex < players.length; i++) {
+              const posDiv = document.createElement('div');
+              posDiv.className = 'formation-position';
+              
+              const card = createPlayerCard(players[playerIndex], position);
+              posDiv.appendChild(card);
+              formationRow.appendChild(posDiv);
+              playerIndex++;
+            }
+            
+            formationContainer.appendChild(formationRow);
+          });
+          
+          section.appendChild(formationContainer);
+        }
+        
+        container.appendChild(section);
+      }
+
+      // Render subs separately
+      if (user.players.subs) {
+        const subsSection = document.createElement('div');
+        subsSection.className = 'team-section';
+
+        const subsTitle = document.createElement('h2');
+        subsTitle.textContent = "SUBS";
+        subsSection.appendChild(subsTitle);
+
+        const subsGrid = document.createElement('div');
+        subsGrid.className = 'subs-grid';
+
+        const subs = Array.isArray(user.players.subs) ? 
+                    user.players.subs : 
+                    [user.players.subs];
+
+        subs.forEach(player => {
+          const card = createPlayerCard(player, "subs");
+          subsGrid.appendChild(card);
+        });
+
+        subsSection.appendChild(subsGrid);
+        container.appendChild(subsSection);
+      }
+    }
+
+    function createPlayerCard(player, position) {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.dataset.id = player.id;
+      card.dataset.position = position;
+      card.setAttribute('data-position', position.toUpperCase());
+      card.innerHTML = `<strong>${player.name}</strong><br>Rating: ${player.rating}`;
+      card.onclick = () => handlePlayerClick(player.id, position);
+      return card;
+    }
+
+    async function handlePlayerClick(playerId, clickedPosition) {
+      const allCards = document.querySelectorAll('.player-card');
+      allCards.forEach(c => c.classList.remove('selected'));
+
+      const clickedCard = [...allCards].find(c => c.dataset.id == playerId);
+      if (clickedCard) clickedCard.classList.add('selected');
+
+      selectedPlayer = { id: playerId, position: clickedPosition };
+
+      const oldOptions = document.querySelector('.swap-options');
+      if (oldOptions) oldOptions.remove();
+
+      const isBench = clickedPosition === "subs";
+
+      let actualPosition = clickedPosition;
+
+      // If the selected player is from the bench, get actual position from /seek?q=id
+      if (isBench) {
+        try {
+          const res = await fetch(`/seek?q=${playerId}`);
+          const data = await res.json();
+          if (data.success) {
+            actualPosition = data.position;
+            selectedPlayer.position = actualPosition;
+          } else {
+            alert('Failed to determine sub position.');
+            return;
+          }
+        } catch (err) {
+          alert('Error getting sub position');
+          return;
+        }
+      }
+
+      const validSwaps = findValidSwapOptions(playerId, actualPosition, isBench);
+
+      if (validSwaps.length > 0) {
+        const swapBox = document.createElement('div');
+        swapBox.className = 'swap-options';
+        swapBox.innerHTML = '<strong>Swap with:</strong>';
+
+        validSwaps.forEach(candidate => {
+          const btn = document.createElement('div');
+          btn.className = 'swap-option';
+          btn.textContent = `${candidate.name} (${candidate.rating})`;
+          btn.onclick = () => performSwap(playerId, candidate.id);
+          swapBox.appendChild(btn);
+        });
+
+        clickedCard.parentElement.appendChild(swapBox);
+      } else {
+        alert('No valid players to swap with.');
+      }
+    }
+
+    function findValidSwapOptions(playerId, position, isBench) {
+      const options = [];
+
+      for (let pos in user.players) {
+        const group = Array.isArray(user.players[pos]) ? user.players[pos] : [user.players[pos]];
+
+        // If selected is a bench player, search for first 11 with same position
+        if (isBench) {
+          if (pos !== "subs" && pos === position) {
+            group.forEach(p => options.push({ ...p, position: pos }));
+          }
+        } else {
+          // If selected is from first 11, allow swap with subs having same position (via /seek)
+          if (pos === "subs") {
+            group.forEach(p => options.push({ ...p, position: "subs" })); // Position will be validated in handlePlayerClick
+          } else if (pos === position) {
+            group.forEach(p => {
+              if (p.id !== playerId) options.push({ ...p, position: pos });
+            });
+          }
+        }
+      }
+
+      return options;
+    }
+
+    function performSwap(outId, inId) {
+      fetch('/substitute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerName: user.playerName,
+          outPlayerId: outId,
+          inPlayerId: inId
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.players) {
+          user.players = data.players;
+          selectedPlayer = null;
+          renderTeam();
+        } else {
+          alert(data.error || 'Substitution failed.');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Error performing substitution');
+      });
+    }
+
+    fetchTeamData();
+  </script>
+</body>
+</html>

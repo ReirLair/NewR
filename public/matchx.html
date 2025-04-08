@@ -2,119 +2,431 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Match Result</title>
   <style>
+    :root {
+      --primary: #1a3e8c;
+      --secondary: #e63946;
+      --accent: #f8c537;
+      --dark: #0a1128;
+      --light: #f8f9fa;
+      --success: #2a9d8f;
+      --warning: #e9c46a;
+      --grass: #5c7c3d;
+    }
+    
+    @font-face {
+      font-family: 'Football';
+      src: url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+    }
+    
     body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-      color: #333;
+      font-family: 'Montserrat', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 0;
+      color: var(--dark);
+      background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231a3e8c' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
     }
+    
     .container {
-      max-width: 700px;
-      margin: auto;
+      max-width: 800px;
+      margin: 2rem auto;
       background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      position: relative;
     }
-    h2 {
+    
+    .header {
+      background: linear-gradient(135deg, var(--primary), #0a2463);
+      color: white;
+      padding: 1.5rem;
       text-align: center;
-      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
     }
+    
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 50c0-5.523-4.477-10-10-10s-10 4.477-10 10 4.477 10 10 10 10-4.477 10-10zm-34 0c0-5.523-4.477-10-10-10s-10 4.477-10 10 4.477 10 10 10 10-4.477 10-10zm10-34c0-5.523-4.477-10-10-10s-10 4.477-10 10 4.477 10 10 10 10-4.477 10-10zm24 0c0-5.523-4.477-10-10-10s-10 4.477-10 10 4.477 10 10 10 10-4.477 10-10zM30 30c0-5.523-4.477-10-10-10s-10 4.477-10 10 4.477 10 10 10 10-4.477 10-10z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+      opacity: 0.3;
+    }
+    
+    .header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      position: relative;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .match-date {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-top: 0.5rem;
+    }
+    
+    .match-stadium {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+    
+    .match-content {
+      padding: 2rem;
+    }
+    
     .teams {
       display: flex;
       justify-content: space-between;
-      font-size: 18px;
-      margin-bottom: 10px;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      position: relative;
     }
-    .team-name {
-      font-weight: bold;
-      font-size: 20px;
-    }
-    .score {
-      font-size: 24px;
-      font-weight: bold;
-    }
-    .stat {
-      margin-bottom: 10px;
+    
+    .team {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
     }
-    .stat-label {
-      font-weight: bold;
+    
+    .team-logo {
+      width: 80px;
+      height: 80px;
+      background: #f8f9fa;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      border: 3px solid #e9ecef;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-    .goals {
-      margin-top: 20px;
-      border-top: 1px solid #eee;
-      padding-top: 15px;
+    
+    .team-logo svg {
+      width: 50px;
+      height: 50px;
     }
-    .goal {
-      margin-bottom: 10px;
-      padding: 8px;
-      background: #f9f9f9;
-      border-radius: 5px;
+    
+    .team-name {
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
     }
+    
+    .team-record {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .score-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 2rem;
+      position: relative;
+    }
+    
+    .score {
+      font-size: 3rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0.5rem 0;
+      position: relative;
+    }
+    
+    .score::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+    }
+    
+    .match-status {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      margin-top: 0.5rem;
+    }
+    
+    .match-result {
+      text-align: center;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+    
     .winner {
-      font-weight: bold;
-      color: green;
-      text-align: center;
-      margin: 15px 0;
-      font-size: 18px;
+      background: rgba(42, 157, 143, 0.1);
+      color: var(--success);
     }
+    
     .draw {
-      color: orange;
+      background: rgba(233, 196, 106, 0.1);
+      color: var(--warning);
     }
-    .button {
-      display: block;
-      width: 100%;
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    
+    .stat-box {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
       text-align: center;
-      margin-top: 30px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
     }
-    .button a {
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      transition: background 0.3s;
+    
+    .stat-box:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     }
-    .button a:hover {
-      background: #0056b3;
+    
+    .stat-box::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary);
     }
-    .top-scorers {
-      margin-top: 20px;
-      border-top: 1px solid #eee;
-      padding-top: 15px;
+    
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
     }
+    
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--dark);
+    }
+    
+    .stat-bar {
+      height: 6px;
+      background: #e9ecef;
+      border-radius: 3px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+    }
+    
+    .stat-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+    }
+    
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 1.5rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #f1f3f5;
+      position: relative;
+    }
+    
+    .section-title::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 50px;
+      height: 2px;
+      background: var(--primary);
+    }
+    
+    .goals-container {
+      margin-top: 1.5rem;
+    }
+    
+    .goal {
+      display: flex;
+      align-items: center;
+      padding: 0.8rem;
+      margin-bottom: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      position: relative;
+    }
+    
+    .goal-team {
+      width: 30px;
+      height: 30px;
+      background: #e9ecef;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .goal-team svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .goal-details {
+      flex-grow: 1;
+    }
+    
+    .goal-scorer {
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    
+    .goal-info {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+    
+    .goal-minute {
+      font-weight: 700;
+      color: var(--primary);
+      margin-right: 0.5rem;
+    }
+    
+    .top-scorers-container {
+      margin-top: 1.5rem;
+    }
+    
     .top-scorer {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 5px;
+      align-items: center;
+      padding: 0.8rem;
+      margin-bottom: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
     }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 20px;
+    
+    .scorer-name {
+      font-weight: 600;
     }
-    .stat-box {
-      background: #f5f5f5;
-      padding: 10px;
-      border-radius: 5px;
+    
+    .scorer-goals {
+      font-weight: 700;
+      color: var(--primary);
     }
-    .stat-value {
-      font-size: 18px;
-      font-weight: bold;
+    
+    .button-container {
+      margin-top: 2rem;
+      text-align: center;
+    }
+    
+    .continue-button {
+      display: inline-block;
+      padding: 0.8rem 2rem;
+      background: linear-gradient(135deg, var(--primary), #0a2463);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 600;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .continue-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Football pitch background for stats section */
+    .stats-section {
+      position: relative;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .stats-section::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--grass);
+      opacity: 0.05;
+      background-image: 
+        linear-gradient(#333 1px, transparent 1px),
+        linear-gradient(90deg, #333 1px, transparent 1px);
+      background-size: 20px 20px;
+      z-index: -1;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .teams {
+        flex-direction: column;
+      }
+      
+      .team {
+        margin-bottom: 1.5rem;
+      }
+      
+      .score-container {
+        margin: 1rem 0;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Match Result</h2>
-    <div id="matchContent">Loading...</div>
-    <div class="button">
-      <a href="/">Continue</a>
+    <div class="header">
+      <h2>Match Result</h2>
+      <div class="match-date">Saturday, November 18, 2023</div>
+      <div class="match-stadium">Stadium of Light</div>
+    </div>
+    
+    <div class="match-content">
+      <div id="matchContent">Loading...</div>
+      
+      <div class="button-container">
+        <a href="/" class="continue-button">Continue</a>
+      </div>
     </div>
   </div>
 
@@ -140,80 +452,178 @@
       const stats = data.stats;
       const goals = data.goals || [];
       const topScorers = data.topScorers || [];
+      const matchDate = data.date ? new Date(data.date).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : 'Match Date';
 
-      // Extract team names from goals if not available directly
+      // Update header with actual data
+      const header = document.querySelector('.header');
+      if (data.competition) {
+        header.querySelector('h2').textContent = data.competition;
+      }
+      if (matchDate) {
+        header.querySelector('.match-date').textContent = matchDate;
+      }
+      if (data.stadium) {
+        header.querySelector('.match-stadium').textContent = data.stadium;
+      }
+
+      // Extract team names from data
       const teamNames = {
-        team1: goals.find(g => g.team)?.team || 'Team 1',
-        team2: goals.reverse().find(g => g.team)?.team || 'Team 2'
+        team1: data.team1 || goals.find(g => g.team)?.team || 'Team 1',
+        team2: data.team2 || goals.reverse().find(g => g.team)?.team || 'Team 2'
       };
+
+      // Calculate possession bar percentages
+      const team1Possession = stats.team1Possession || 50;
+      const team2Possession = stats.team2Possession || (100 - team1Possession);
 
       let html = `
         <div class="teams">
-          <div class="team-name">${teamNames.team1}</div>
-          <div class="score">${stats.team1Goals} - ${stats.team2Goals}</div>
-          <div class="team-name">${teamNames.team2}</div>
+          <div class="team">
+            <div class="team-logo">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="${teamNames.team1 === data.winner ? '#2a9d8f' : '#1a3e8c'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14M9 9H9.01M15 9H15.01" stroke="${teamNames.team1 === data.winner ? '#2a9d8f' : '#1a3e8c'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="team-name">${teamNames.team1}</div>
+            <div class="team-record">${stats.team1Wins || 0}-${stats.team1Draws || 0}-${stats.team1Losses || 0}</div>
+          </div>
+          
+          <div class="score-container">
+            <div class="match-status">Full Time</div>
+            <div class="score">${stats.team1Goals} - ${stats.team2Goals}</div>
+          </div>
+          
+          <div class="team">
+            <div class="team-logo">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="${teamNames.team2 === data.winner ? '#2a9d8f' : '#e63946'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14M9 9H9.01M15 9H15.01" stroke="${teamNames.team2 === data.winner ? '#2a9d8f' : '#e63946'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="team-name">${teamNames.team2}</div>
+            <div class="team-record">${stats.team2Wins || 0}-${stats.team2Draws || 0}-${stats.team2Losses || 0}</div>
+          </div>
         </div>
       `;
 
       // Winner/Draw display
       if (data.winner) {
-        html += `<div class="winner">Winner: ${data.winner}</div>`;
+        html += `<div class="match-result winner">${data.winner} wins!</div>`;
       } else {
-        html += `<div class="winner draw">Match ended in a draw</div>`;
+        html += `<div class="match-result draw">Match ended in a draw</div>`;
       }
 
-      // Stats grid
+      // Stats section with football pitch background
       html += `
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-label">Shots</div>
-            <div class="stat-value">${stats.team1Shots} - ${stats.team2Shots}</div>
+        <div class="stats-section">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Shots</div>
+              <div class="stat-value">${stats.team1Shots} - ${stats.team2Shots}</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${(stats.team1Shots / (stats.team1Shots + stats.team2Shots)) * 100 || 50}%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-box">
+              <div class="stat-label">Shots on Target</div>
+              <div class="stat-value">${stats.team1ShotsOnTarget || 0} - ${stats.team2ShotsOnTarget || 0}</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${(stats.team1ShotsOnTarget / (stats.team1ShotsOnTarget + stats.team2ShotsOnTarget)) * 100 || 50}%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-box">
+              <div class="stat-label">Possession</div>
+              <div class="stat-value">${team1Possession}% - ${team2Possession}%</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${team1Possession}%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-box">
+              <div class="stat-label">Pass Accuracy</div>
+              <div class="stat-value">${stats.team1PassAccuracy || 0}% - ${stats.team2PassAccuracy || 0}%</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${stats.team1PassAccuracy || 50}%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-box">
+              <div class="stat-label">Corners</div>
+              <div class="stat-value">${stats.team1Corners} - ${stats.team2Corners}</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${(stats.team1Corners / (stats.team1Corners + stats.team2Corners)) * 100 || 50}%"></div>
+              </div>
+            </div>
+            
+            <div class="stat-box">
+              <div class="stat-label">Fouls</div>
+              <div class="stat-value">${stats.team1Fouls} - ${stats.team2Fouls}</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: ${(stats.team1Fouls / (stats.team1Fouls + stats.team2Fouls)) * 100 || 50}%"></div>
+              </div>
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Possession</div>
-            <div class="stat-value">${stats.team1Possession}% - ${stats.team2Possession}%</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Corners</div>
-            <div class="stat-value">${stats.team1Corners} - ${stats.team2Corners}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Fouls</div>
-            <div class="stat-value">${stats.team1Fouls} - ${stats.team2Fouls}</div>
-          </div>
-          <div class="stat-box" style="grid-column: span 2;">
+          
+          <div class="stat-box" style="grid-column: span 2; margin-top: 1rem;">
             <div class="stat-label">Coin Reward</div>
-            <div class="stat-value">${stats.coinReward || stats.coinReward || 0} coins</div>
+            <div class="stat-value">${stats.coinReward || 0} coins</div>
           </div>
         </div>
       `;
 
       // Goals section
       if (goals.length > 0) {
-        html += `<div class="goals"><h3>Match Goals</h3>`;
+        html += `<div class="section-title">Match Goals</div>`;
+        html += `<div class="goals-container">`;
+        
         goals.forEach(goal => {
+          const isTeam1 = goal.team === teamNames.team1;
+          const teamColor = isTeam1 ? '#1a3e8c' : '#e63946';
+          
           html += `
             <div class="goal">
-              <strong>${goal.minute}'</strong> - 
-              <strong>${goal.scorer}</strong> (${goal.position}) - ${goal.team}
-              ${goal.assist ? `<br>Assist: ${goal.assist}` : ''}
+              <div class="goal-team" style="background: ${isTeam1 ? 'rgba(26, 62, 140, 0.1)' : 'rgba(230, 57, 70, 0.1)'}">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="${teamColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14M9 9H9.01M15 9H15.01" stroke="${teamColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="goal-details">
+                <div class="goal-scorer">${goal.scorer} (${goal.position})</div>
+                <div class="goal-info">
+                  <span class="goal-minute">${goal.minute}'</span>
+                  ${goal.assist ? `<span>Assist: ${goal.assist}</span>` : ''}
+                </div>
+              </div>
             </div>
           `;
         });
+        
         html += `</div>`;
       }
 
       // Top Scorers section
       if (topScorers.length > 0) {
-        html += `<div class="top-scorers"><h3>Top Scorers</h3>`;
+        html += `<div class="section-title">Top Scorers</div>`;
+        html += `<div class="top-scorers-container">`;
+        
         topScorers.forEach(player => {
           html += `
             <div class="top-scorer">
-              <span>${player.name}</span>
-              <span>${player.goals} goal${player.goals !== 1 ? 's' : ''}</span>
+              <div class="scorer-name">${player.name}</div>
+              <div class="scorer-goals">${player.goals} goal${player.goals !== 1 ? 's' : ''}</div>
             </div>
           `;
         });
+        
         html += `</div>`;
       }
 
@@ -221,7 +631,11 @@
 
     } catch (error) {
       console.error(error);
-      document.getElementById('matchContent').innerText = 'Failed to fetch match data.';
+      document.getElementById('matchContent').innerHTML = `
+        <div class="match-result" style="background: rgba(230, 57, 70, 0.1); color: #e63946;">
+          Failed to fetch match data. Please try again later.
+        </div>
+      `;
     }
   }
 
