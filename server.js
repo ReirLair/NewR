@@ -1098,7 +1098,7 @@ app.get('/matches', (req, res) => {
 app.get('/links', (req, res) => res.json(links));
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 7860;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
@@ -1106,6 +1106,10 @@ app.listen(PORT, () => {
 // Route for the register page
 app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+app.get('/lobby', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
 });
 
 app.get('/login', (req, res) => {
@@ -1121,4 +1125,4 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
 });
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+app.listen(7860, '0.0.0.0', () => console.log('Server running on port 7860'));
